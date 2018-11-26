@@ -1,2 +1,7 @@
 #Dotenv file
 .env
+
+#Maven
+/target
+/log
+.class
