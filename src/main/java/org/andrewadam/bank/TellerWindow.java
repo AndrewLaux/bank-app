@@ -98,8 +98,8 @@ public class TellerWindow {
 	public Boolean ownerInAccounts(String accountId1, String accountId2) throws Exception {
 		// select 1 from owns o1, owns o2 where o1.account_id=999999985 and
 		// o2.account_id=999999989 and o1.tax_id=o2.tax_id;
-		String qry = "select 1 from owns o1, owns o2 where o1.account_id='" + accountId1 + "' and lo2.account_id='"
-				+ accountId2 + "') and o1.tax_id=o2.tax_id";
+		String qry = "select 1 from owns o1, owns o2 where o1.account_id='" + accountId1 + "' and o2.account_id='"
+				+ accountId2 + "' and o1.tax_id=o2.tax_id";
 		System.out.println(qry);
 		ResultSet rs = db.requestData(qry);
 		Boolean result = rs.next();
@@ -135,8 +135,8 @@ public class TellerWindow {
 	}
 
 	// Creates a transaction
-	public void createTransaction(String accountId, String amount, Integer checkNumber, String transactionTypeName)
-			throws Exception {
+	public void createTransaction(String accountId1, String accountId2, String amount, Integer checkNumber,
+			String transactionTypeName) throws Exception {
 		// id, transaction_date, check_number, amount
 		// "insert into transactions values(1,'"+curDate+"',1,1.11)"
 		java.util.Date date = new java.util.Date();
@@ -161,9 +161,16 @@ public class TellerWindow {
 
 		// Insert into makes
 		// 9999999999 is teller tax_id
-		qry = "insert into makes (account_id,id,tax_id) values('" + accountId + "'," + transId + ",'9999999999')";
+		qry = "insert into makes (account_id,id,tax_id) values('" + accountId1 + "'," + transId + ",'9999999999')";
 		System.out.println(qry);
 		db.requestData(qry);
+
+		if (accountId2 != "0") {
+			// 9999999999 is teller tax_id
+			qry = "insert into makes (account_id,id,tax_id) values('" + accountId2 + "'," + transId + ",'9999999999')";
+			System.out.println(qry);
+			db.requestData(qry);
+		}
 
 		// Insert into has transaction type
 		qry = "insert into has_t_type(id,type_name) values(" + transId + ",'" + transactionTypeName + "')";
@@ -259,6 +266,9 @@ public class TellerWindow {
 									+ " where account_id = " + AccountIdNumberInput.getText();
 							System.out.println(qry);
 							db.requestData(qry);
+
+							// Create transaction
+							createTransaction(AccountIdNumberInput.getText(), "0", AmountInput.getText(), 0, "deposit");
 						} else
 							System.out.println("Account is NOT a checking or savings account");
 
@@ -275,7 +285,7 @@ public class TellerWindow {
 					// t.account_id=o.account_id and t.name='savings';
 					try {
 						// Checks if account will go negative
-						if (accountGoesNegative(AccountIdNumberInput.getText(), TransferIdNumberInput.getText())) {
+						if (accountGoesNegative(AccountIdNumberInput.getText(), AmountInput.getText())) {
 							System.out.println("account WILL go negative");
 							return;
 						} else {
@@ -294,7 +304,7 @@ public class TellerWindow {
 							// Checking if accounts are linked
 							Boolean linked = areAccountsLinked(AccountIdNumberInput.getText(),
 									TransferIdNumberInput.getText());
-
+							System.out.println("pocket="+pocket);
 							if ((sChecking || iChecking || savings) && pocket && linked) {
 								String qry = "update account set balance = balance + " + AmountInput.getText()
 										+ " where account_id = " + AccountIdNumberInput.getText();
@@ -304,6 +314,10 @@ public class TellerWindow {
 										+ " where account_id = " + TransferIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
+
+								// Create transaction
+								createTransaction(AccountIdNumberInput.getText(), TransferIdNumberInput.getText(),
+										AmountInput.getText(), 0, "top-up");
 							} else
 								// TODO actually check these as you go
 								System.out.println("Fail: the account wasnt checking/saving, pocket, or linked");
@@ -337,6 +351,10 @@ public class TellerWindow {
 										+ " where account_id = " + AccountIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
+
+								// Create transaction
+								createTransaction(AccountIdNumberInput.getText(), "0", AmountInput.getText(), 0,
+										"withdrawal");
 							} else
 								System.out.println("Account is NOT a checking or savings account");
 						}
@@ -361,6 +379,9 @@ public class TellerWindow {
 										+ " where account_id = " + AccountIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
+								// Create transaction
+								createTransaction(AccountIdNumberInput.getText(), "0", AmountInput.getText(), 0,
+										"purchase");
 							}
 						} else
 							System.out.println("Account id is not a pocket account");
@@ -374,7 +395,7 @@ public class TellerWindow {
 					// TODO Amount should not exceed 2000
 					try {
 						// Checks if account will go negative
-						if (accountGoesNegative(AccountIdNumberInput.getText(), TransferIdNumberInput.getText())) {
+						if (accountGoesNegative(TransferIdNumberInput.getText(), AmountInput.getText())) {
 							System.out.println("account WILL go negative");
 							return;
 						} else {
@@ -391,6 +412,12 @@ public class TellerWindow {
 										+ " where account_id = " + TransferIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
+								// Create transaction
+								createTransaction(AccountIdNumberInput.getText(), "0", AmountInput.getText(), 0,
+										"transfer");
+							}
+							else{
+								System.out.println("NOT owner in both accounts");
 							}
 						}
 						db.closeConn();
@@ -403,7 +430,7 @@ public class TellerWindow {
 					// TODO 3%fee
 					try {
 						// Checks if account will go negative
-						if (accountGoesNegative(AccountIdNumberInput.getText(), TransferIdNumberInput.getText())) {
+						if (accountGoesNegative(TransferIdNumberInput.getText(), AmountInput.getText())) {
 							System.out.println("account WILL go negative");
 							return;
 						} else {
@@ -425,13 +452,16 @@ public class TellerWindow {
 
 							if ((sChecking || iChecking || savings) && pocket && linked) {
 								String qry = "update account set balance = balance + " + AmountInput.getText()
-										+ " where account_id = " + TransferIdNumberInput.getText();
-								System.out.println(qry);
-								db.requestData(qry);
-								qry = "update account set balance = balance - " + AmountInput.getText()
 										+ " where account_id = " + AccountIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
+								qry = "update account set balance = balance - " + AmountInput.getText()
+										+ " where account_id = " + TransferIdNumberInput.getText();
+								System.out.println(qry);
+								db.requestData(qry);
+								// Create transaction
+								createTransaction(AccountIdNumberInput.getText(), TransferIdNumberInput.getText(),
+										AmountInput.getText(), 0, "collect");
 							} else
 								// TODO actually check these as you go
 								System.out.println("Fail: the account wasnt checking/saving, pocket, or linked");
@@ -445,7 +475,7 @@ public class TellerWindow {
 				case "Pay-Friend":
 					try {
 						// Checks if account will go negative
-						if (accountGoesNegative(AccountIdNumberInput.getText(), TransferIdNumberInput.getText())) {
+						if (accountGoesNegative(TransferIdNumberInput.getText(), AmountInput.getText())) {
 							System.out.println("account WILL go negative");
 							return;
 						} else {
@@ -454,6 +484,7 @@ public class TellerWindow {
 
 							// Checking if account is pocket
 							Boolean pocket2 = isAccountType("pocket", TransferIdNumberInput.getText());
+
 
 							if (pocket1 && pocket2) {
 								String qry = "update account set balance = balance + " + AmountInput.getText()
@@ -464,8 +495,14 @@ public class TellerWindow {
 										+ " where account_id = " + TransferIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
-							} else
+								// Create transaction
+								createTransaction(AccountIdNumberInput.getText(), TransferIdNumberInput.getText(),
+										AmountInput.getText(), 0, "pay-friend");
+							} else{
+								System.out.println("to="+pocket1);
+								System.out.println("from="+pocket2);
 								System.out.println("Make sure both accounts are pocket accounts");
+							}
 						}
 						db.closeConn();
 
@@ -477,7 +514,7 @@ public class TellerWindow {
 					// TODO a 2% fee for this action
 					try {
 						// Checks if account will go negative
-						if (accountGoesNegative(AccountIdNumberInput.getText(), TransferIdNumberInput.getText())) {
+						if (accountGoesNegative(TransferIdNumberInput.getText(), AmountInput.getText())) {
 							System.out.println("account WILL go negative");
 							return;
 						} else {
@@ -502,6 +539,9 @@ public class TellerWindow {
 										+ " where account_id = " + TransferIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
+								// Create transaction
+								createTransaction(AccountIdNumberInput.getText(), TransferIdNumberInput.getText(),
+										AmountInput.getText(), 0, "wire");
 							}
 						}
 						db.closeConn();
@@ -514,7 +554,7 @@ public class TellerWindow {
 					// TODO check number
 					try {
 						// Checks if account will go negative
-						if (accountGoesNegative(AccountIdNumberInput.getText(), AccountIdNumberInput.getText())) {
+						if (accountGoesNegative(AccountIdNumberInput.getText(), AmountInput.getText())) {
 							System.out.println("account WILL go negative");
 							return;
 						} else {
@@ -526,6 +566,10 @@ public class TellerWindow {
 										+ " where account_id = " + AccountIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
+								// Create transaction
+								// TODO get check number
+								createTransaction(AccountIdNumberInput.getText(), "0", AmountInput.getText(), 9,
+										"write-check");
 							}
 						}
 						db.closeConn();
@@ -827,14 +871,16 @@ public class TellerWindow {
 
 						// Creating transaction
 						if (AccountTypeInput.getSelectedItem().toString() == "pocket") {
-							createTransaction(cur_account_id.toString(), DepositInput.getText(), 0, "top-up");
+							createTransaction(cur_account_id.toString(), LinkedAccountInput.getText(),
+									DepositInput.getText(), 0, "top-up");
 							qry = "update account set balance = balance - " + DepositInput.getText()
 									+ " where account_id = " + LinkedAccountInput.getText();
 							System.out.println(qry);
 							db.requestData(qry);
 
 						} else
-							createTransaction(cur_account_id.toString(), DepositInput.getText(), 0, "deposit");
+							createTransaction(cur_account_id.toString(), LinkedAccountInput.getText(),
+									DepositInput.getText(), 0, "deposit");
 
 						r.close();
 						db.closeConn();
