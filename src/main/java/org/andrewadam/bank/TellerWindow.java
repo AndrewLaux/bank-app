@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.awt.event.ActionEvent;
 import javax.swing.JTextPane;
 import java.awt.Panel;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
 
 public class TellerWindow {
 
@@ -36,7 +38,7 @@ public class TellerWindow {
 	private JTextField AccountIdNumberInput;
 	private JTextField AmountInput;
 	private JTextField TransferIdNumberInput;
-	private JTextField accountIdNumberInput;
+	private JTextField taxIdNumberInput;
 	private JTextField textField_4;
 	private JTextField NameInput;
 	private JTextField TaxIdInput;
@@ -115,6 +117,8 @@ public class TellerWindow {
 		rs.next();
 		Double curBalance = Double.valueOf(rs.getString(1).trim());
 		rs.close();
+		System.out.println("curbalance = " + curBalance);
+		System.out.println("Double.valueOf(amount)= " + Double.valueOf(amount));
 		if ((curBalance - Double.valueOf(amount)) > 0.01)
 			return false;
 		else
@@ -179,18 +183,17 @@ public class TellerWindow {
 
 	}
 
-	
 	// Generate transactions for a given account
 	public String accountTransactionsFor(String accountId) throws Exception {
 		String transactions = "";
+		System.out.println("in: accountID= " + accountId);
 		ArrayList<String> idList = new ArrayList<String>();
 		// Getting to and from transactions
 		String qry = "select distinct t.transaction_date, t.id, c.name, hs.type_name, t.amount, m1.account_id, m2.account_id as account_id_2"
 				+ " from transactions t, makes m1, makes m2, has_t_type hs, type ty, customers c"
 				+ " where t.id=m1.id and t.id=m2.id and (ty.account_id=m1.account_id"
 				+ " or ty.account_id=m2.account_id) and hs.id=t.id and not(m1.account_id=m2.account_id)"
-				+ " and m1.id=m2.id and c.tax_id=m1.tax_id and m1.account_id='"
-				+ accountId + "'";
+				+ " and m1.id=m2.id and c.tax_id=m1.tax_id and m1.account_id='" + accountId + "'";
 		System.out.println(qry);
 		ResultSet rs = db.requestData(qry);
 		while (rs.next()) {
@@ -204,23 +207,48 @@ public class TellerWindow {
 		// Getting single account transactions
 		qry = "select distinct t.id, t.transaction_date, c.name, hs.type_name, t.amount, m1.account_id"
 				+ " from transactions t, makes m1, makes m2, has_t_type hs, type ty, customers c"
-				+ " where t.id=m1.id and t.id=hs.id and ty.account_id=m1.account_id"
-				+ " and m1.account_id='" + accountId + "' and c.tax_id=m1.tax_id";
+				+ " where t.id=m1.id and t.id=hs.id and ty.account_id=m1.account_id" + " and m1.account_id='"
+				+ accountId + "' and c.tax_id=m1.tax_id";
 		System.out.println(qry);
 		rs = db.requestData(qry);
 		while (rs.next()) {
 			// Checking if i've already added this transaction
 			if (!idList.contains(rs.getString("id")))
-				transactions = transactions + rs.getString("id") + " " + rs.getString("transaction_date")
-						+ " " + rs.getString("account_id") + " " + rs.getString("name").trim() + " "
+				transactions = transactions + rs.getString("id") + " " + rs.getString("transaction_date") + " "
+						+ rs.getString("account_id") + " " + rs.getString("name").trim() + " "
 						+ rs.getString("type_name").trim() + " " + rs.getString("amount") + "\n";
 		}
 		rs.close();
 		db.closeConn();
+		System.out.println(transactions);
 		return transactions;
 
-	}	
-	
+	}
+
+	// select c.name,c.address from customers c, owns o where c.tax_id=o.tax_id
+	// and o.account_id='999999989';
+	// Gets customers names and addresses from account
+	public String customersFromAccount(String accountId) throws Exception {
+		try {
+			String customers = "";
+			System.out.println("in: accountID= " + accountId);
+			ArrayList<String> idList = new ArrayList<String>();
+			// Getting to and from transactions
+			String qry = "select c.name,c.address from customers c, owns o where c.tax_id=o.tax_id and o.account_id='"
+					+ accountId + "'";
+			System.out.println(qry);
+			ResultSet rs = db.requestData(qry);
+			// adding customer data
+			while (rs.next())
+				customers = customers + rs.getString("name") + rs.getString("address") + "\n";
+			return customers;
+
+		} catch (Exception e1) {
+			System.out.println("Get customers data failed");
+		}
+		return "";
+	}
+
 	/**
 	 * Create the application.
 	 */
@@ -326,7 +354,7 @@ public class TellerWindow {
 					// t.account_id=o.account_id and t.name='savings';
 					try {
 						// Checks if account will go negative
-						if (accountGoesNegative(AccountIdNumberInput.getText(), AmountInput.getText())) {
+						if (accountGoesNegative(TransferIdNumberInput.getText(), AmountInput.getText())) {
 							System.out.println("account WILL go negative");
 							return;
 						} else {
@@ -645,21 +673,45 @@ public class TellerWindow {
 		JTextArea monthlyStatement = new JTextArea();
 		monthlyStatement.setBounds(15, 90, 823, 296);
 		GenerateMonthlyStatement.add(monthlyStatement);
+		
+		JLabel TaxIDNumber = new JLabel("Tax ID Number");
+		TaxIDNumber.setBounds(39, 35, 148, 20);
+		GenerateMonthlyStatement.add(TaxIDNumber);
 
-		JLabel lblAccountIdNumber_1 = new JLabel("Account ID Number");
-		lblAccountIdNumber_1.setBounds(39, 35, 148, 20);
-		GenerateMonthlyStatement.add(lblAccountIdNumber_1);
-
-		accountIdNumberInput = new JTextField();
-		accountIdNumberInput.setBounds(202, 32, 146, 26);
-		GenerateMonthlyStatement.add(accountIdNumberInput);
-		accountIdNumberInput.setColumns(10);
+		taxIdNumberInput = new JTextField();
+		taxIdNumberInput.setBounds(202, 32, 146, 26);
+		GenerateMonthlyStatement.add(taxIdNumberInput);
+		taxIdNumberInput.setColumns(10);
 
 		JButton btnEnter_1 = new JButton("Enter");
 		btnEnter_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					monthlyStatement.setText(accountTransactionsFor(accountIdNumberInput.getText()));
+					ArrayList<String> accountList = new ArrayList<String>();
+					String qry = "select account_id from owns where tax_id='" + taxIdNumberInput.getText() + "'";
+					ResultSet r = db.requestData(qry);
+
+					// Getting all accounts owned by the tax id
+					while (r.next())
+						accountList.add(r.getString("account_id"));
+
+					// Creating text field for transactions output
+					String statement = "Accounts\n________\n";
+					String transactions = "";
+					for (String acnt : accountList) {
+						statement = statement + acnt + "\n";
+						statement = statement + customersFromAccount(acnt);
+					}
+					statement = statement + "\nTransactions\n____________\n";
+					for (String acnt : accountList) {
+						// ID #
+						// transactions...
+						// ...
+						statement = statement + "ID " + acnt + "\n";
+						transactions = accountTransactionsFor(acnt);
+						statement = statement + transactions + "\n";
+					}
+					monthlyStatement.setText(statement);
 				} catch (Exception e1) {
 					System.out.println("Make sure you entered a valid account number");
 					System.out.println(e1);
