@@ -179,6 +179,48 @@ public class TellerWindow {
 
 	}
 
+	
+	// Generate transactions for a given account
+	public String accountTransactionsFor(String accountId) throws Exception {
+		String transactions = "";
+		ArrayList<String> idList = new ArrayList<String>();
+		// Getting to and from transactions
+		String qry = "select distinct t.transaction_date, t.id, c.name, hs.type_name, t.amount, m1.account_id, m2.account_id as account_id_2"
+				+ " from transactions t, makes m1, makes m2, has_t_type hs, type ty, customers c"
+				+ " where t.id=m1.id and t.id=m2.id and (ty.account_id=m1.account_id"
+				+ " or ty.account_id=m2.account_id) and hs.id=t.id and not(m1.account_id=m2.account_id)"
+				+ " and m1.id=m2.id and c.tax_id=m1.tax_id and m1.account_id='"
+				+ accountId + "'";
+		System.out.println(qry);
+		ResultSet rs = db.requestData(qry);
+		while (rs.next()) {
+			idList.add(rs.getString("id"));
+			transactions = transactions + rs.getString("id") + " " + rs.getString("transaction_date") + " "
+					+ rs.getString("account_id") + " " + rs.getString("name").trim() + " "
+					+ rs.getString("type_name").trim() + " " + rs.getString("amount") + " "
+					+ rs.getString("account_id_2") + "\n";
+		}
+
+		// Getting single account transactions
+		qry = "select distinct t.id, t.transaction_date, c.name, hs.type_name, t.amount, m1.account_id"
+				+ " from transactions t, makes m1, makes m2, has_t_type hs, type ty, customers c"
+				+ " where t.id=m1.id and t.id=hs.id and ty.account_id=m1.account_id"
+				+ " and m1.account_id='" + accountId + "' and c.tax_id=m1.tax_id";
+		System.out.println(qry);
+		rs = db.requestData(qry);
+		while (rs.next()) {
+			// Checking if i've already added this transaction
+			if (!idList.contains(rs.getString("id")))
+				transactions = transactions + rs.getString("id") + " " + rs.getString("transaction_date")
+						+ " " + rs.getString("account_id") + " " + rs.getString("name").trim() + " "
+						+ rs.getString("type_name").trim() + " " + rs.getString("amount") + "\n";
+		}
+		rs.close();
+		db.closeConn();
+		return transactions;
+
+	}	
+	
 	/**
 	 * Create the application.
 	 */
@@ -617,42 +659,7 @@ public class TellerWindow {
 		btnEnter_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					String transactions = "";
-					ArrayList<String> idList = new ArrayList<String>();
-					// Getting to and from transactions
-					String qry = "select distinct t.transaction_date, t.id, c.name, hs.type_name, t.amount, m1.account_id, m2.account_id as account_id_2"
-							+ " from transactions t, makes m1, makes m2, has_t_type hs, type ty, customers c"
-							+ " where t.id=m1.id and t.id=m2.id and (ty.account_id=m1.account_id"
-							+ " or ty.account_id=m2.account_id) and hs.id=t.id and not(m1.account_id=m2.account_id)"
-							+ " and m1.id=m2.id and c.tax_id=m1.tax_id and m1.account_id='"
-							+ accountIdNumberInput.getText() + "'";
-					System.out.println(qry);
-					ResultSet r = db.requestData(qry);
-					while (r.next()) {
-						idList.add(r.getString("id"));
-						transactions = transactions + r.getString("id") + " " + r.getString("transaction_date") + " "
-								+ r.getString("account_id") + " " + r.getString("name").trim() + " "
-								+ r.getString("type_name").trim() + " " + r.getString("amount") + " "
-								+ r.getString("account_id_2") + "\n";
-					}
-
-					// Getting single account transactions
-					qry = "select distinct t.id, t.transaction_date, c.name, hs.type_name, t.amount, m1.account_id"
-							+ " from transactions t, makes m1, makes m2, has_t_type hs, type ty, customers c"
-							+ " where t.id=m1.id and t.id=hs.id and ty.account_id=m1.account_id"
-							+ " and m1.account_id='" + accountIdNumberInput.getText() + "' and c.tax_id=m1.tax_id";
-					System.out.println(qry);
-					r = db.requestData(qry);
-					while (r.next()) {
-						// Checking if i've already added this transaction
-						if (!idList.contains(r.getString("id")))
-							transactions = transactions + r.getString("id") + " " + r.getString("transaction_date")
-									+ " " + r.getString("account_id") + " " + r.getString("name").trim() + " "
-									+ r.getString("type_name").trim() + " " + r.getString("amount") + "\n";
-					}
-					r.close();
-					db.closeConn();
-					monthlyStatement.setText(transactions);
+					monthlyStatement.setText(accountTransactionsFor(accountIdNumberInput.getText()));
 				} catch (Exception e1) {
 					System.out.println("Make sure you entered a valid account number");
 					System.out.println(e1);
