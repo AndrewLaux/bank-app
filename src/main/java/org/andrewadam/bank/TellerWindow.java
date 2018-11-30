@@ -36,7 +36,7 @@ public class TellerWindow {
 	private JTextField AccountIdNumberInput;
 	private JTextField AmountInput;
 	private JTextField TransferIdNumberInput;
-	private JTextField textField_3;
+	private JTextField accountIdNumberInput;
 	private JTextField textField_4;
 	private JTextField NameInput;
 	private JTextField TaxIdInput;
@@ -246,7 +246,6 @@ public class TellerWindow {
 			public void actionPerformed(ActionEvent e) {
 				System.out.println(ActionInput.getSelectedItem().toString() + " Selected");
 				// TODO Check that account is not closed
-				// TODO Generate transactions
 				switch (ActionInput.getSelectedItem().toString()) {
 				case "Deposit":
 					try {
@@ -304,7 +303,7 @@ public class TellerWindow {
 							// Checking if accounts are linked
 							Boolean linked = areAccountsLinked(AccountIdNumberInput.getText(),
 									TransferIdNumberInput.getText());
-							System.out.println("pocket="+pocket);
+							System.out.println("pocket=" + pocket);
 							if ((sChecking || iChecking || savings) && pocket && linked) {
 								String qry = "update account set balance = balance + " + AmountInput.getText()
 										+ " where account_id = " + AccountIdNumberInput.getText();
@@ -415,8 +414,7 @@ public class TellerWindow {
 								// Create transaction
 								createTransaction(AccountIdNumberInput.getText(), "0", AmountInput.getText(), 0,
 										"transfer");
-							}
-							else{
+							} else {
 								System.out.println("NOT owner in both accounts");
 							}
 						}
@@ -485,7 +483,6 @@ public class TellerWindow {
 							// Checking if account is pocket
 							Boolean pocket2 = isAccountType("pocket", TransferIdNumberInput.getText());
 
-
 							if (pocket1 && pocket2) {
 								String qry = "update account set balance = balance + " + AmountInput.getText()
 										+ " where account_id = " + AccountIdNumberInput.getText();
@@ -498,9 +495,9 @@ public class TellerWindow {
 								// Create transaction
 								createTransaction(AccountIdNumberInput.getText(), TransferIdNumberInput.getText(),
 										AmountInput.getText(), 0, "pay-friend");
-							} else{
-								System.out.println("to="+pocket1);
-								System.out.println("from="+pocket2);
+							} else {
+								System.out.println("to=" + pocket1);
+								System.out.println("from=" + pocket2);
 								System.out.println("Make sure both accounts are pocket accounts");
 							}
 						}
@@ -542,6 +539,8 @@ public class TellerWindow {
 								// Create transaction
 								createTransaction(AccountIdNumberInput.getText(), TransferIdNumberInput.getText(),
 										AmountInput.getText(), 0, "wire");
+							} else {
+								System.out.println("make sure both accounts are checking/savings");
 							}
 						}
 						db.closeConn();
@@ -601,23 +600,64 @@ public class TellerWindow {
 		tabbedPane.addTab("Generate Monthly Statement", null, GenerateMonthlyStatement, null);
 		GenerateMonthlyStatement.setLayout(null);
 
-		JTextArea textArea = new JTextArea();
-		textArea.setBounds(15, 90, 823, 296);
-		GenerateMonthlyStatement.add(textArea);
+		JTextArea monthlyStatement = new JTextArea();
+		monthlyStatement.setBounds(15, 90, 823, 296);
+		GenerateMonthlyStatement.add(monthlyStatement);
 
 		JLabel lblAccountIdNumber_1 = new JLabel("Account ID Number");
 		lblAccountIdNumber_1.setBounds(39, 35, 148, 20);
 		GenerateMonthlyStatement.add(lblAccountIdNumber_1);
 
-		textField_3 = new JTextField();
-		textField_3.setBounds(202, 32, 146, 26);
-		GenerateMonthlyStatement.add(textField_3);
-		textField_3.setColumns(10);
+		accountIdNumberInput = new JTextField();
+		accountIdNumberInput.setBounds(202, 32, 146, 26);
+		GenerateMonthlyStatement.add(accountIdNumberInput);
+		accountIdNumberInput.setColumns(10);
 
 		JButton btnEnter_1 = new JButton("Enter");
 		btnEnter_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				System.out.println("yes?");
+				try {
+					String transactions = "";
+					ArrayList<String> idList = new ArrayList<String>();
+					// Getting to and from transactions
+					String qry = "select distinct t.transaction_date, t.id, c.name, hs.type_name, t.amount, m1.account_id, m2.account_id as account_id_2"
+							+ " from transactions t, makes m1, makes m2, has_t_type hs, type ty, customers c"
+							+ " where t.id=m1.id and t.id=m2.id and (ty.account_id=m1.account_id"
+							+ " or ty.account_id=m2.account_id) and hs.id=t.id and not(m1.account_id=m2.account_id)"
+							+ " and m1.id=m2.id and c.tax_id=m1.tax_id and m1.account_id='"
+							+ accountIdNumberInput.getText() + "'";
+					System.out.println(qry);
+					ResultSet r = db.requestData(qry);
+					while (r.next()) {
+						idList.add(r.getString("id"));
+						transactions = transactions + r.getString("id") + " " + r.getString("transaction_date") + " "
+								+ r.getString("account_id") + " " + r.getString("name").trim() + " "
+								+ r.getString("type_name").trim() + " " + r.getString("amount") + " "
+								+ r.getString("account_id_2") + "\n";
+					}
+
+					// Getting single account transactions
+					qry = "select distinct t.id, t.transaction_date, c.name, hs.type_name, t.amount, m1.account_id"
+							+ " from transactions t, makes m1, makes m2, has_t_type hs, type ty, customers c"
+							+ " where t.id=m1.id and t.id=hs.id and ty.account_id=m1.account_id"
+							+ " and m1.account_id='" + accountIdNumberInput.getText() + "' and c.tax_id=m1.tax_id";
+					System.out.println(qry);
+					r = db.requestData(qry);
+					while (r.next()) {
+						// Checking if i've already added this transaction
+						if (!idList.contains(r.getString("id")))
+							transactions = transactions + r.getString("id") + " " + r.getString("transaction_date")
+									+ " " + r.getString("account_id") + " " + r.getString("name").trim() + " "
+									+ r.getString("type_name").trim() + " " + r.getString("amount") + "\n";
+					}
+					r.close();
+					db.closeConn();
+					monthlyStatement.setText(transactions);
+				} catch (Exception e1) {
+					System.out.println("Make sure you entered a valid account number");
+					System.out.println(e1);
+				}
+
 			}
 		});
 		btnEnter_1.setBounds(373, 31, 115, 29);
