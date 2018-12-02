@@ -39,7 +39,7 @@ public class TellerWindow {
 	private JTextField AmountInput;
 	private JTextField TransferIdNumberInput;
 	private JTextField taxIdNumberInput;
-	private JTextField textField_4;
+	private JTextField taxIdNumberCustomerReportInput;
 	private JTextField NameInput;
 	private JTextField TaxIdInput;
 	private JTextField AddressInput;
@@ -268,7 +268,8 @@ public class TellerWindow {
 	public String DTER() throws Exception {
 		try {
 			String customers = "";
-			// Getting to and from transactions
+			// Getting list of names, amounts and type of transfer that are over
+			// $10000
 			String qry = "select distinct c.name, t.amount, hs.type_name "
 					+ " from has_t_type hs, customers c, makes m, transactions t, owns o"
 					+ " where (hs.type_name='deposit' or hs.type_name='transfer' or hs.type_name='wire') and hs.id=m.id and m.tax_id=m.tax_id"
@@ -276,7 +277,8 @@ public class TellerWindow {
 
 			System.out.println(qry);
 			ResultSet rs = db.requestData(qry);
-			// adding customer data
+
+			// Compiling list of people to be presented
 			while (rs.next())
 				customers = customers + rs.getString("name") + " " + rs.getString("amount") + " "
 						+ rs.getString("type_name") + "\n";
@@ -812,11 +814,11 @@ public class TellerWindow {
 				try {
 					String dterReport = DTER();
 					dterTextFieldOutput.setText(dterReport);
-					
+
 				} catch (Exception e1) {
 					e1.printStackTrace();
 				}
-				
+
 			}
 		});
 		button.setBounds(373, 31, 115, 29);
@@ -826,20 +828,39 @@ public class TellerWindow {
 		tabbedPane.addTab("Customer Report", null, CustomerReport, null);
 		CustomerReport.setLayout(null);
 
-		JTextArea textArea_3 = new JTextArea();
-		textArea_3.setBounds(15, 90, 823, 296);
-		CustomerReport.add(textArea_3);
+		JTextArea customerReportTextField = new JTextArea();
+		customerReportTextField.setBounds(15, 90, 823, 296);
+		CustomerReport.add(customerReportTextField);
 
-		JLabel label = new JLabel("Account ID Number");
-		label.setBounds(39, 35, 148, 20);
-		CustomerReport.add(label);
+		JLabel lblTaxIdNumber = new JLabel("Tax Id Number");
+		lblTaxIdNumber.setBounds(39, 35, 148, 20);
+		CustomerReport.add(lblTaxIdNumber);
 
-		textField_4 = new JTextField();
-		textField_4.setColumns(10);
-		textField_4.setBounds(202, 32, 146, 26);
-		CustomerReport.add(textField_4);
+		taxIdNumberCustomerReportInput = new JTextField();
+		taxIdNumberCustomerReportInput.setColumns(10);
+		taxIdNumberCustomerReportInput.setBounds(202, 32, 146, 26);
+		CustomerReport.add(taxIdNumberCustomerReportInput);
 
 		JButton button_1 = new JButton("Enter");
+		button_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					String qry = "select o.account_id, t.name, a.status from owns o, account a, type t where t.account_id=a.account_id and t.account_id=o.account_id and a.account_id=o.account_id and o.tax_id='"
+							+ taxIdNumberCustomerReportInput.getText() + "'";
+					ResultSet r = db.requestData(qry);
+
+					String reportOutput = "1 = open\n0 = close\n\n   Account              type                    Status\n";// r.getString("account_id")
+					// Getting all accounts owned by the tax id
+					while (r.next())
+						reportOutput = reportOutput + r.getString("account_id") + "      " + r.getString("name")
+								+ "      " + r.getString("status") + "\n";
+					customerReportTextField.setText(reportOutput);
+				} catch (Exception e1) {
+					System.out.println("Make sure you entered a valid tax id");
+					System.out.println(e1);
+				}
+			}
+		});
 		button_1.setBounds(373, 31, 115, 29);
 		CustomerReport.add(button_1);
 
