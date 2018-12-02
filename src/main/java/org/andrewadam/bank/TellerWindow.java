@@ -158,20 +158,35 @@ public class TellerWindow {
 			qry = "insert into transactions(id, transaction_date,amount) " + "values(" + transId + ",'" + curDate + "',"
 					+ amount + ")";
 		}
-
+		System.out.println("prepre");
 		// Insert into transactions
 		System.out.println(qry);
 		db.requestData(qry);
 
 		// Insert into makes
 		// 9999999999 is teller tax_id
-		qry = "insert into makes (account_id,id,tax_id) values('" + accountId1 + "'," + transId + ",'9999999999')";
+		// Getting primary owner
+		System.out.println("pre");
+		qry = "select distinct c.tax_id from customers c, owns o, account a where c.tax_id=o.tax_id and c.tax_id=a.primary_owner and o.account_id='"
+				+ accountId1 + "'";
+		// AccountIdNumberInput.getText()
+		System.out.println("post");
+		System.out.println(qry);
+		ResultSet rs = db.requestData(qry);
+		rs.next();
+		String temp_tax_id = rs.getString("tax_id");
+		System.out.println(temp_tax_id);
+
+		qry = "insert into makes (account_id,id,tax_id) values('" + accountId1 + "'," + transId + ",'" + temp_tax_id
+				+ "')";
 		System.out.println(qry);
 		db.requestData(qry);
 
-		if (accountId2 != "0") {
+		if (accountId2.length() > 0) {
+			System.out.println("accountID2= " + accountId2 + "=");
 			// 9999999999 is teller tax_id
-			qry = "insert into makes (account_id,id,tax_id) values('" + accountId2 + "'," + transId + ",'9999999999')";
+			qry = "insert into makes (account_id,id,tax_id) values('" + accountId2 + "'," + transId + ",'" + temp_tax_id
+					+ "')";
 			System.out.println(qry);
 			db.requestData(qry);
 		}
@@ -241,6 +256,30 @@ public class TellerWindow {
 			// adding customer data
 			while (rs.next())
 				customers = customers + rs.getString("name") + rs.getString("address") + "\n";
+			return customers;
+
+		} catch (Exception e1) {
+			System.out.println("Get customers data failed");
+		}
+		return "";
+	}
+
+	// DTER
+	public String DTER() throws Exception {
+		try {
+			String customers = "";
+			// Getting to and from transactions
+			String qry = "select distinct c.name, t.amount, hs.type_name "
+					+ " from has_t_type hs, customers c, makes m, transactions t, owns o"
+					+ " where (hs.type_name='deposit' or hs.type_name='transfer' or hs.type_name='wire') and hs.id=m.id and m.tax_id=m.tax_id"
+					+ " and o.account_id=m.account_id and o.tax_id=c.tax_id" + " and t.id=m.id and t.amount > 10000";
+
+			System.out.println(qry);
+			ResultSet rs = db.requestData(qry);
+			// adding customer data
+			while (rs.next())
+				customers = customers + rs.getString("name") + " " + rs.getString("amount") + " "
+						+ rs.getString("type_name") + "\n";
 			return customers;
 
 		} catch (Exception e1) {
@@ -336,7 +375,6 @@ public class TellerWindow {
 							System.out.println(qry);
 							db.requestData(qry);
 
-							// Create transaction
 							createTransaction(AccountIdNumberInput.getText(), "0", AmountInput.getText(), 0, "deposit");
 						} else
 							System.out.println("Account is NOT a checking or savings account");
@@ -424,6 +462,7 @@ public class TellerWindow {
 								// Create transaction
 								createTransaction(AccountIdNumberInput.getText(), "0", AmountInput.getText(), 0,
 										"withdrawal");
+
 							} else
 								System.out.println("Account is NOT a checking or savings account");
 						}
@@ -673,7 +712,7 @@ public class TellerWindow {
 		JTextArea monthlyStatement = new JTextArea();
 		monthlyStatement.setBounds(15, 90, 823, 296);
 		GenerateMonthlyStatement.add(monthlyStatement);
-		
+
 		JLabel TaxIDNumber = new JLabel("Tax ID Number");
 		TaxIDNumber.setBounds(39, 35, 148, 20);
 		GenerateMonthlyStatement.add(TaxIDNumber);
@@ -686,6 +725,9 @@ public class TellerWindow {
 		JButton btnEnter_1 = new JButton("Enter");
 		btnEnter_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				// TODO add scroll to text field
+				// TODO needs account initial and final balances
+				// TODO warn if accounts are over $100,000
 				try {
 					ArrayList<String> accountList = new ArrayList<String>();
 					String qry = "select account_id from owns where tax_id='" + taxIdNumberInput.getText() + "'";
@@ -760,11 +802,23 @@ public class TellerWindow {
 		tabbedPane.addTab("DTER", null, DTER, null);
 		DTER.setLayout(null);
 
-		JTextArea textArea_2 = new JTextArea();
-		textArea_2.setBounds(15, 90, 823, 296);
-		DTER.add(textArea_2);
+		JTextArea dterTextFieldOutput = new JTextArea();
+		dterTextFieldOutput.setBounds(15, 90, 823, 296);
+		DTER.add(dterTextFieldOutput);
 
 		JButton button = new JButton("Enter");
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					String dterReport = DTER();
+					dterTextFieldOutput.setText(dterReport);
+					
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
+				
+			}
+		});
 		button.setBounds(373, 31, 115, 29);
 		DTER.add(button);
 
@@ -968,6 +1022,41 @@ public class TellerWindow {
 						System.out.println(qry);
 						db.requestData(qry);
 
+						// // Creating transaction
+						// if (AccountTypeInput.getSelectedItem().toString() ==
+						// "pocket") {
+						// createTransaction(cur_account_id.toString(),
+						// LinkedAccountInput.getText(),
+						// DepositInput.getText(), 0, "top-up");
+						// qry = "update account set balance = balance - " +
+						// DepositInput.getText()
+						// + " where account_id = " +
+						// LinkedAccountInput.getText();
+						// System.out.println(qry);
+						// db.requestData(qry);
+						//
+						// } else
+						// createTransaction(cur_account_id.toString(),
+						// LinkedAccountInput.getText(),
+						// DepositInput.getText(), 0, "deposit");
+						//
+						// r.close();
+						// db.closeConn();
+
+						// Inserting into owns table
+						for (String cur_id : tax_id_list) {
+							qry = "insert into owns(tax_id,account_id) values('" + cur_id + "','" + cur_account_id
+									+ "')";
+							System.out.println(qry);
+							db.requestData(qry);
+						}
+
+						// Inserting into type table
+						qry = "insert into type(name,account_id) values('"
+								+ AccountTypeInput.getSelectedItem().toString() + "','" + cur_account_id + "')";
+						System.out.println(qry);
+						db.requestData(qry);
+
 						// Creating transaction
 						if (AccountTypeInput.getSelectedItem().toString() == "pocket") {
 							createTransaction(cur_account_id.toString(), LinkedAccountInput.getText(),
@@ -983,20 +1072,6 @@ public class TellerWindow {
 
 						r.close();
 						db.closeConn();
-
-						// Inserting into owns table
-						for (String cur_id : tax_id_list) {
-							qry = "insert into owns(tax_id,account_id) values('" + cur_id + "','" + cur_account_id
-									+ "')";
-							System.out.println(qry);
-							db.requestData(qry);
-						}
-
-						// Inserting into type table
-						qry = "insert into type(name,account_id) values('"
-								+ AccountTypeInput.getSelectedItem().toString() + "','" + cur_account_id + "')";
-						System.out.println(qry);
-						db.requestData(qry);
 
 						tax_id_list.clear();
 					}
