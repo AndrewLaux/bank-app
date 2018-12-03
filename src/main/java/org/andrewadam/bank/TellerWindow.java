@@ -297,22 +297,68 @@ public class TellerWindow {
 			// Getting list of names, amounts and type of transfer that are over
 			// $10000
 			String qry = "select * from account where account_id='" + account + "'";
-			//System.out.println(qry);
+			// System.out.println(qry);
 			ResultSet rs = db.requestData(qry);
 
 			rs.next();
 			status = rs.getString("status");
-			if (status.equals("1")){
-				//System.out.println("status = "+status +" and returning true");
+			if (status.equals("1")) {
+				// System.out.println("status = "+status +" and returning
+				// true");
 				return true;
-			}else{
-				//System.out.println("status = "+status +" and returning false");
+			} else {
+				// System.out.println("status = "+status +" and returning
+				// false");
 				return false;
 			}
 
 		} catch (Exception e1) {
 			System.out.println("check if account is closed failed");
 			return false;
+		}
+	}
+
+	// DELETING ACCOUNT AND CUSTOMERS
+	public void deleteClosedAccounts() throws Exception {
+		try {
+			String qry = "select account_id from account where status='0'";
+			System.out.println(qry);
+			ResultSet rs = db.requestData(qry);
+			ResultSet rs2;
+
+			while (rs.next()) {
+				qry = "delete from makes where account_id='" + rs.getString("account_id") + "'";
+				System.out.println(qry);
+				db.requestData(qry);
+				qry = "delete from type where account_id='" + rs.getString("account_id") + "'";
+				System.out.println(qry);
+				db.requestData(qry);
+				qry = "delete from owns where account_id='" + rs.getString("account_id") + "'";
+				System.out.println(qry);
+				db.requestData(qry);
+				qry = "update account set linked_account=null where linked_account='" + rs.getString("account_id") + "'";
+				System.out.println(qry);
+				db.requestData(qry);
+				qry = "delete from account where account_id='" + rs.getString("account_id") + "'";
+				System.out.println(qry);
+				db.requestData(qry);
+				qry = "select tax_id from customers minus select tax_id from owns";
+				System.out.println(qry);
+				rs2 = db.requestData(qry);
+				while (rs2.next()){
+					qry = "delete from customers where tax_id='"+ rs2.getString("tax_id") + "'";
+					System.out.println(qry);
+					db.requestData(qry);
+				}
+				rs2.close();
+					
+			}
+			rs.close();
+			db.closeConn();
+
+		} catch (Exception e1) {
+			System.out.println("delete accounts and customers failed");
+
 		}
 	}
 
@@ -385,13 +431,14 @@ public class TellerWindow {
 				// TODO Check that account is not closed
 				switch (ActionInput.getSelectedItem().toString()) {
 				case "Deposit":
-					
+
 					try {
 						// Check if accounts are closed
-						if( !accountOpen(AccountIdNumberInput.getText()) ){
+						if (!accountOpen(AccountIdNumberInput.getText())) {
 							System.out.println("Make sure account is open:");
 							System.out.println("true=open false=closed");
-							System.out.println(AccountIdNumberInput.getText() + "="+accountOpen(AccountIdNumberInput.getText()));
+							System.out.println(
+									AccountIdNumberInput.getText() + "=" + accountOpen(AccountIdNumberInput.getText()));
 							return;
 						}
 						// Checking if account is student checking
@@ -428,11 +475,14 @@ public class TellerWindow {
 					// t.account_id=o.account_id and t.name='savings';
 					try {
 						// Check if accounts are closed
-						if(!(accountOpen(TransferIdNumberInput.getText()) && accountOpen(AccountIdNumberInput.getText()))){
+						if (!(accountOpen(TransferIdNumberInput.getText())
+								&& accountOpen(AccountIdNumberInput.getText()))) {
 							System.out.println("Make sure both accounts are open:");
 							System.out.println("true=open false=closed");
-							System.out.println(TransferIdNumberInput.getText() + "="+accountOpen(TransferIdNumberInput.getText()));
-							System.out.println(AccountIdNumberInput.getText() + "="+accountOpen(AccountIdNumberInput.getText()));
+							System.out.println(TransferIdNumberInput.getText() + "="
+									+ accountOpen(TransferIdNumberInput.getText()));
+							System.out.println(
+									AccountIdNumberInput.getText() + "=" + accountOpen(AccountIdNumberInput.getText()));
 							return;
 						}
 						// Checks if account will go negative
@@ -487,15 +537,21 @@ public class TellerWindow {
 				case "Withdrawal":
 					try {
 						// Check if accounts are closed
-						if( !accountOpen(AccountIdNumberInput.getText()) ){
+						if (!accountOpen(AccountIdNumberInput.getText())) {
 							System.out.println("Make sure account is open:");
 							System.out.println("true=open false=closed");
-							System.out.println(AccountIdNumberInput.getText() + "="+accountOpen(AccountIdNumberInput.getText()));
+							System.out.println(
+									AccountIdNumberInput.getText() + "=" + accountOpen(AccountIdNumberInput.getText()));
 							return;
 						}
 						// Checks if account will go negative
 						if (accountGoesNegative(AccountIdNumberInput.getText(), AmountInput.getText())) {
-							System.out.println("account WILL go negative");
+							String qry = "update account set status='0' where account_id='"
+									+ AccountIdNumberInput.getText() + "'";
+							db.requestData(qry);
+							db.closeConn();
+							System.out.println("Account WILL go negative, and now account "
+									+ AccountIdNumberInput.getText() + " is now closed");
 							return;
 						} else {
 							System.out.println("account will NOT go negative");
@@ -531,10 +587,11 @@ public class TellerWindow {
 				case "Purchase":
 					try {
 						// Check if accounts are closed
-						if( !accountOpen(AccountIdNumberInput.getText()) ){
+						if (!accountOpen(AccountIdNumberInput.getText())) {
 							System.out.println("Make sure account is open:");
 							System.out.println("true=open false=closed");
-							System.out.println(AccountIdNumberInput.getText() + "="+accountOpen(AccountIdNumberInput.getText()));
+							System.out.println(
+									AccountIdNumberInput.getText() + "=" + accountOpen(AccountIdNumberInput.getText()));
 							return;
 						}
 						// Checking if account is pocket
@@ -543,7 +600,12 @@ public class TellerWindow {
 						if (pocket) {
 							// Checks if account will go negative
 							if (accountGoesNegative(AccountIdNumberInput.getText(), AmountInput.getText())) {
-								System.out.println("account WILL go negative");
+								String qry = "update account set status='0' where account_id='"
+										+ AccountIdNumberInput.getText() + "'";
+								db.requestData(qry);
+								db.closeConn();
+								System.out.println("Account WILL go negative, and now account "
+										+ AccountIdNumberInput.getText() + " is now closed");
 								return;
 							} else {
 								String qry = "update account set balance = balance - " + AmountInput.getText()
@@ -566,11 +628,14 @@ public class TellerWindow {
 					// TODO Amount should not exceed 2000
 					try {
 						// Check if accounts are closed
-						if(!(accountOpen(TransferIdNumberInput.getText()) && accountOpen(AccountIdNumberInput.getText()))){
+						if (!(accountOpen(TransferIdNumberInput.getText())
+								&& accountOpen(AccountIdNumberInput.getText()))) {
 							System.out.println("Make sure both accounts are open:");
 							System.out.println("true=open false=closed");
-							System.out.println(TransferIdNumberInput.getText() + "="+accountOpen(TransferIdNumberInput.getText()));
-							System.out.println(AccountIdNumberInput.getText() + "="+accountOpen(AccountIdNumberInput.getText()));
+							System.out.println(TransferIdNumberInput.getText() + "="
+									+ accountOpen(TransferIdNumberInput.getText()));
+							System.out.println(
+									AccountIdNumberInput.getText() + "=" + accountOpen(AccountIdNumberInput.getText()));
 							return;
 						}
 						// Checks if account will go negative
@@ -608,16 +673,24 @@ public class TellerWindow {
 					// TODO 3%fee
 					try {
 						// Check if accounts are closed
-						if(!(accountOpen(TransferIdNumberInput.getText()) && accountOpen(AccountIdNumberInput.getText()))){
+						if (!(accountOpen(TransferIdNumberInput.getText())
+								&& accountOpen(AccountIdNumberInput.getText()))) {
 							System.out.println("Make sure both accounts are open:");
 							System.out.println("true=open false=closed");
-							System.out.println(TransferIdNumberInput.getText() + "="+accountOpen(TransferIdNumberInput.getText()));
-							System.out.println(AccountIdNumberInput.getText() + "="+accountOpen(AccountIdNumberInput.getText()));
+							System.out.println(TransferIdNumberInput.getText() + "="
+									+ accountOpen(TransferIdNumberInput.getText()));
+							System.out.println(
+									AccountIdNumberInput.getText() + "=" + accountOpen(AccountIdNumberInput.getText()));
 							return;
 						}
 						// Checks if account will go negative
 						if (accountGoesNegative(TransferIdNumberInput.getText(), AmountInput.getText())) {
-							System.out.println("account WILL go negative");
+							String qry = "update account set status='0' where account_id='"
+									+ TransferIdNumberInput.getText() + "'";
+							db.requestData(qry);
+							db.closeConn();
+							System.out.println("Account WILL go negative, and now account "
+									+ TransferIdNumberInput.getText() + " is now closed");
 							return;
 						} else {
 							// Checking if account is student checking
@@ -661,16 +734,24 @@ public class TellerWindow {
 				case "Pay-Friend":
 					try {
 						// Check if accounts are closed
-						if(!(accountOpen(TransferIdNumberInput.getText()) && accountOpen(AccountIdNumberInput.getText()))){
+						if (!(accountOpen(TransferIdNumberInput.getText())
+								&& accountOpen(AccountIdNumberInput.getText()))) {
 							System.out.println("Make sure both accounts are open:");
 							System.out.println("true=open false=closed");
-							System.out.println(TransferIdNumberInput.getText() + "="+accountOpen(TransferIdNumberInput.getText()));
-							System.out.println(AccountIdNumberInput.getText() + "="+accountOpen(AccountIdNumberInput.getText()));
+							System.out.println(TransferIdNumberInput.getText() + "="
+									+ accountOpen(TransferIdNumberInput.getText()));
+							System.out.println(
+									AccountIdNumberInput.getText() + "=" + accountOpen(AccountIdNumberInput.getText()));
 							return;
 						}
 						// Checks if account will go negative
 						if (accountGoesNegative(TransferIdNumberInput.getText(), AmountInput.getText())) {
-							System.out.println("account WILL go negative");
+							String qry = "update account set status='0' where account_id='"
+									+ TransferIdNumberInput.getText() + "'";
+							db.requestData(qry);
+							db.closeConn();
+							System.out.println("Account WILL go negative, and now account "
+									+ TransferIdNumberInput.getText() + " is now closed");
 							return;
 						} else {
 							// Checking if account is pocket
@@ -707,16 +788,24 @@ public class TellerWindow {
 					// TODO a 2% fee for this action
 					try {
 						// Check if accounts are closed
-						if(!(accountOpen(TransferIdNumberInput.getText()) && accountOpen(AccountIdNumberInput.getText()))){
+						if (!(accountOpen(TransferIdNumberInput.getText())
+								&& accountOpen(AccountIdNumberInput.getText()))) {
 							System.out.println("Make sure both accounts are open:");
 							System.out.println("true=open false=closed");
-							System.out.println(TransferIdNumberInput.getText() + "="+accountOpen(TransferIdNumberInput.getText()));
-							System.out.println(AccountIdNumberInput.getText() + "="+accountOpen(AccountIdNumberInput.getText()));
+							System.out.println(TransferIdNumberInput.getText() + "="
+									+ accountOpen(TransferIdNumberInput.getText()));
+							System.out.println(
+									AccountIdNumberInput.getText() + "=" + accountOpen(AccountIdNumberInput.getText()));
 							return;
 						}
 						// Checks if account will go negative
 						if (accountGoesNegative(TransferIdNumberInput.getText(), AmountInput.getText())) {
-							System.out.println("account WILL go negative");
+							String qry = "update account set status='0' where account_id='"
+									+ TransferIdNumberInput.getText() + "'";
+							db.requestData(qry);
+							db.closeConn();
+							System.out.println("Account WILL go negative, and now account "
+									+ TransferIdNumberInput.getText() + " is now closed");
 							return;
 						} else {
 							// Checking if accounts are student checking
@@ -757,15 +846,21 @@ public class TellerWindow {
 					// TODO check number
 					try {
 						// Check if accounts are closed
-						if( !accountOpen(AccountIdNumberInput.getText()) ){
+						if (!accountOpen(AccountIdNumberInput.getText())) {
 							System.out.println("Make sure account is open:");
 							System.out.println("true=open false=closed");
-							System.out.println(AccountIdNumberInput.getText() + "="+accountOpen(AccountIdNumberInput.getText()));
+							System.out.println(
+									AccountIdNumberInput.getText() + "=" + accountOpen(AccountIdNumberInput.getText()));
 							return;
 						}
 						// Checks if account will go negative
 						if (accountGoesNegative(AccountIdNumberInput.getText(), AmountInput.getText())) {
-							System.out.println("account WILL go negative");
+							String qry = "update account set status='0' where account_id='"
+									+ AccountIdNumberInput.getText() + "'";
+							db.requestData(qry);
+							db.closeConn();
+							System.out.println("Account WILL go negative, and now account "
+									+ AccountIdNumberInput.getText() + " is now closed");
 							return;
 						} else {
 							// Checking if accounts are student checking
@@ -883,7 +978,7 @@ public class TellerWindow {
 					ResultSet r = db.requestData(qry);
 
 					// Getting all accounts owned by the tax id
-					while (r.next()){
+					while (r.next()) {
 						accountList.add(r.getString("account_id"));
 					}
 
@@ -1146,27 +1241,6 @@ public class TellerWindow {
 						System.out.println(qry);
 						db.requestData(qry);
 
-						// // Creating transaction
-						// if (AccountTypeInput.getSelectedItem().toString() ==
-						// "pocket") {
-						// createTransaction(cur_account_id.toString(),
-						// LinkedAccountInput.getText(),
-						// DepositInput.getText(), 0, "top-up");
-						// qry = "update account set balance = balance - " +
-						// DepositInput.getText()
-						// + " where account_id = " +
-						// LinkedAccountInput.getText();
-						// System.out.println(qry);
-						// db.requestData(qry);
-						//
-						// } else
-						// createTransaction(cur_account_id.toString(),
-						// LinkedAccountInput.getText(),
-						// DepositInput.getText(), 0, "deposit");
-						//
-						// r.close();
-						// db.closeConn();
-
 						// Inserting into owns table
 						for (String cur_id : tax_id_list) {
 							qry = "insert into owns(tax_id,account_id) values('" + cur_id + "','" + cur_account_id
@@ -1183,12 +1257,17 @@ public class TellerWindow {
 
 						// Creating transaction
 						if (AccountTypeInput.getSelectedItem().toString() == "pocket") {
+							if (LinkedAccountInput.getText().length()==10){
 							createTransaction(cur_account_id.toString(), LinkedAccountInput.getText(),
 									DepositInput.getText(), 0, "top-up");
 							qry = "update account set balance = balance - " + DepositInput.getText()
 									+ " where account_id = " + LinkedAccountInput.getText();
 							System.out.println(qry);
 							db.requestData(qry);
+							}
+							else{
+								System.out.println("Enter a valid linked Account");
+							}
 
 						} else
 							createTransaction(cur_account_id.toString(), LinkedAccountInput.getText(),
@@ -1241,6 +1320,16 @@ public class TellerWindow {
 		DeleteClosedAccountsandCustomers.setLayout(null);
 
 		JButton btnEnter_3 = new JButton("Enter");
+		btnEnter_3.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					deleteClosedAccounts();
+				} catch (Exception e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		});
 		btnEnter_3.setBounds(356, 36, 115, 29);
 		DeleteClosedAccountsandCustomers.add(btnEnter_3);
 
