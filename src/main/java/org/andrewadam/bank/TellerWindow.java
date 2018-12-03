@@ -448,7 +448,6 @@ public class TellerWindow {
 		btnEnter.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				System.out.println(ActionInput.getSelectedItem().toString() + " Selected");
-				// TODO Check that account is not closed
 				switch (ActionInput.getSelectedItem().toString()) {
 				case "Deposit":
 
@@ -647,6 +646,10 @@ public class TellerWindow {
 				case "Transfer":
 					// TODO Amount should not exceed 2000
 					try {
+						if(Double.parseDouble(AmountInput.getText()) > 2000){
+							System.out.println("Please enter a amount less than 2000");
+							return;
+						}
 						// Check if accounts are closed
 						if (!(accountOpen(TransferIdNumberInput.getText())
 								&& accountOpen(AccountIdNumberInput.getText()))) {
@@ -1363,7 +1366,6 @@ public class TellerWindow {
 				try {
 					deleteTransactions();
 				} catch (Exception e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 			}
