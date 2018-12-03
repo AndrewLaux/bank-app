@@ -362,6 +362,26 @@ public class TellerWindow {
 		}
 	}
 
+	// DELETING transactions
+		public void deleteTransactions() throws Exception {
+			try {
+				String qry = "delete from makes where not id='1'";
+				System.out.println(qry);
+				db.requestData(qry);
+				qry = "delete from has_t_type where not id='1'";
+				System.out.println(qry);
+				db.requestData(qry);
+				qry = "delete from transactions where not id='1'";
+				System.out.println(qry);
+				db.requestData(qry);
+				db.closeConn();
+
+			} catch (Exception e1) {
+				System.out.println("delete transactions failed");
+
+			}
+		}
+		
 	/**
 	 * Create the application.
 	 */
@@ -1338,6 +1358,16 @@ public class TellerWindow {
 		DeleteTransactions.setLayout(null);
 
 		JButton btnEnter_4 = new JButton("Enter");
+		btnEnter_4.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					deleteTransactions();
+				} catch (Exception e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		});
 		btnEnter_4.setBounds(356, 43, 115, 29);
 		DeleteTransactions.add(btnEnter_4);
 	}
