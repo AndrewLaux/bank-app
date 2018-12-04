@@ -14,8 +14,12 @@ import java.util.*;
 //their bank accounts.
 public class AtmWindow extends JFrame implements ActionListener {
     
+    //Database obj:
+    private Data db;
+    
     //Private Data:
     private String tax_id;
+    private ArrayList<String[]> accounts;
     
     //GUI elements:
     private javax.swing.JPanel actionsPane;
@@ -41,14 +45,51 @@ public class AtmWindow extends JFrame implements ActionListener {
     //--Constructor with Args-----------------------------------------
     //Constructs the GUI given a tax_id associated with a customer.
     public AtmWindow(String tax_id){
-        setVisible(true);
+        
+        //Initialize base data for ATM window.
+        db = new Data();
+        this.tax_id = tax_id; 
         initComponents();
+        setVisible(true);
     }
     
     //--Method---------------------------------------------------------
     //Contains code for responding to GUI actions.
     public void actionPerformed(ActionEvent obj) {
         
+    }
+    
+    //--Method----------------------------------------------------------
+    //Get customer info given some tax_id
+    private ArrayList<String> getCustomerInfo() throws Exception {
+        String qry = "SELECT name, address FROM customers WHERE tax_id='"+ tax_id +"'";
+        ResultSet rs = db.requestData(qry);
+        ArrayList<String> info = new ArrayList<String>();
+        while(rs.next()){
+            info.add(rs.getNString("name").trim());
+            info.add(rs.getString("address").trim());
+        }
+        rs.close();
+        return info;
+    }
+    
+    //--Method------------------------------------------------------------
+    //Get ArrayList of each of customer's accounts.
+    private ArrayList<String[]> getAccounts() throws Exception {
+        String qry = "SELECT O.account_id as number, T.name as type, A.balance as balance ";
+        qry = qry + "FROM Owns O, type T, Account A ";
+        qry = qry + "WHERE O.tax_id='" + tax_id + "' AND T.account_id = O.account_id AND A.account_id = O.account_id";
+        ResultSet rs = db.requestData(qry);
+        ArrayList<String[]> info = new ArrayList<String[]>();
+        while(rs.next()){
+            String[] row = new String[3];
+            row[0] = rs.getString("number").trim();
+            row[1] = rs.getString("type").trim();
+            row[2] = rs.getString("balance").trim();
+            info.add(row);
+            
+        }
+        return info;
     }
     
     //--Method----------------------------------------------------------
@@ -98,6 +139,13 @@ public class AtmWindow extends JFrame implements ActionListener {
 
         address_hdr.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         address_hdr.setText("default address, ST zip");
+        
+        //Get customer info;
+        try {
+            ArrayList<String> info = getCustomerInfo();
+            user_hdr.setText(info.get(0));
+            address_hdr.setText(info.get(1));
+        }catch (Exception e) { System.out.println("Couldn't retrieve customer info.");}
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -138,6 +186,12 @@ public class AtmWindow extends JFrame implements ActionListener {
         jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createEtchedBorder(), "Accounts"));
 
         jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        
+        //Try to get accounts:
+        try{
+            accounts = getAccounts();
+        } catch (Exception e) { System.out.println("Couldn't get accounts for customer.");}
+        System.out.print(accounts);
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -290,5 +344,8 @@ public class AtmWindow extends JFrame implements ActionListener {
 
         pack();
     }
+    
+    
+    
     
 }

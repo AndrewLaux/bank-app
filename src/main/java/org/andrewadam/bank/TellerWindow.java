@@ -1182,9 +1182,9 @@ public class TellerWindow {
 
 					// Creating customer, and adding
 					else if (createCustomer == true) {
+                                                String digest = Hmac.hash(TaxIdInput.getText(), "1717");
 						qry = "insert into customers (name,tax_id,address,hash) " + "values('" + NameInput.getText()
-								+ "','" + TaxIdInput.getText() + "','" + AddressInput.getText() + "','" + "1717" + "')";
-						// TODO add hash for 1717
+								+ "','" + TaxIdInput.getText() + "','" + AddressInput.getText() + "','" + digest + "')";
 						System.out.println(qry);
 						db.requestData(qry);
 						tax_id_list.add(TaxIdInput.getText());
