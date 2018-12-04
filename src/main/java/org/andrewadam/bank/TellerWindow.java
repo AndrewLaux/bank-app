@@ -398,7 +398,7 @@ public class TellerWindow {
 	private void initialize() {
 		frame = new JFrame();
 		frame.setBounds(100, 100, 880, 492);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		frame.getContentPane().add(tabbedPane, BorderLayout.CENTER);
@@ -644,7 +644,6 @@ public class TellerWindow {
 					}
 					break;
 				case "Transfer":
-					// TODO Amount should not exceed 2000
 					try {
 						if(Double.parseDouble(AmountInput.getText()) > 2000){
 							System.out.println("Please enter a amount less than 2000");
