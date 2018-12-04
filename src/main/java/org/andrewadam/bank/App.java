@@ -116,10 +116,8 @@ public class App extends JFrame implements ActionListener {
             db.closeConn();
 
             //TODO: compute expected hash.
-            String expected = "609321337";
-            
- 
-            
+            String expected = Hmac.hash(String.valueOf(id), String.valueOf(pin));
+            System.out.println(expected);
             
             //Compare
             return (found.equals(expected));
