@@ -53,6 +53,22 @@ public class App extends JFrame implements ActionListener {
         //Capture source:
         Object source = obj.getSource();
         
+        //Teller Button
+        if(source == tellerBttn){
+        	//Get password input:
+            String tellerPw = String.valueOf(tellerPass.getPassword());
+            
+            //Open teller window if password is valid
+            if( tellerPw.equals("123") ){
+            	System.out.println("valid");
+            	new TellerWindow().main(null);
+            }
+            else{
+            	System.out.println("not valid");
+            	
+            }
+        	
+        }
         //ATM Button:
         if (source == atmBttn) {
             
