@@ -79,10 +79,14 @@ public class App extends JFrame implements ActionListener {
             //Verify id and pin:
             if (verifyPin(id, pin)) {
 
-                //TODO: Launch ATM interface:
+                
                 //Reset fields:
                 atmId.setText("");
                 atmPass.setText("");
+                
+                //Launch atmwindow
+                //String[] arg = {String.valueOf(id)};
+                AtmWindow atm = new AtmWindow(String.valueOf(id));
 
             }
             
