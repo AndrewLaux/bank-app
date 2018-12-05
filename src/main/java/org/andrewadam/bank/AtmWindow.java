@@ -21,6 +21,7 @@ public class AtmWindow extends JFrame implements ActionListener {
     private String tax_id;
     private ArrayList<String[]> accounts;
     private String chosen_account;
+    private String primary_of_chosen;
     
     //GUI elements:
     private javax.swing.JPanel actionsPane;
@@ -82,6 +83,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 over_text +=       ("\n\n");
                 over_text +=       ("Type: " + overview.get(4));
                 over_text +=       ("\n\n");
+                primary_of_chosen = overview.get(2);
                 
                 
             }catch (Exception e) {System.out.println("Failed to get overview. \n"+ e.getMessage());}
