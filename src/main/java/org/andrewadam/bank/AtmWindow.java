@@ -20,6 +20,7 @@ public class AtmWindow extends JFrame implements ActionListener {
     //Private Data:
     private String tax_id;
     private ArrayList<String[]> accounts;
+    private String chosen_account;
     
     //GUI elements:
     private javax.swing.JPanel actionsPane;
@@ -46,16 +47,57 @@ public class AtmWindow extends JFrame implements ActionListener {
     //Constructs the GUI given a tax_id associated with a customer.
     public AtmWindow(String tax_id){
         
-        //Initialize base data for ATM window.
+        //Initialize base data for ATM window:
         db = new Data();
         this.tax_id = tax_id; 
         initComponents();
         setVisible(true);
+        
+        //Register listeners for GUI elements.
+        jComboBox2.addActionListener(this);
     }
     
     //--Method---------------------------------------------------------
     //Contains code for responding to GUI actions.
     public void actionPerformed(ActionEvent obj) {
+        
+        //Capture source:
+        Object source = obj.getSource();
+        
+        //Account Selector Combo box:
+        if( source == jComboBox2 && jComboBox2.getSelectedIndex() != 0) {
+            chosen_account = accounts.get(jComboBox2.getSelectedIndex() - 1)[0];
+            String over_text = "";
+            
+            //Attempt to fill out overview pane:
+            try{
+                ArrayList<String> overview = getAccountInfo();
+                over_text += ("Balance: $" + overview.get(1));
+                over_text +=       ("\n\n");
+                over_text +=       ("Account id#:  " + overview.get(0));
+                over_text +=       ("\n");
+                over_text +=       ("Owner ssn#:   " + overview.get(2));
+                over_text +=       ("\n");
+                over_text +=       ("Branch:       " + overview.get(3));
+                over_text +=       ("\n\n");
+                over_text +=       ("Type: " + overview.get(4));
+                over_text +=       ("\n\n");
+                
+                
+            }catch (Exception e) {System.out.println("Failed to get overview. \n"+ e.getMessage());}
+            
+            //Attempt to fill out owners:
+            try {
+                over_text += "Owners \n";
+                over_text += "---------\n";
+                over_text += customersFromAccount(chosen_account);
+            }catch (Exception e) {System.out.println("Failed to get owners. \n"+ e.getMessage());}
+            
+            //Post text to text area:
+            overviewText.setText(over_text);
+        }
+        
+        
         
     }
     
@@ -76,20 +118,61 @@ public class AtmWindow extends JFrame implements ActionListener {
     //--Method------------------------------------------------------------
     //Get ArrayList of each of customer's accounts.
     private ArrayList<String[]> getAccounts() throws Exception {
-        String qry = "SELECT O.account_id as number, T.name as type, A.balance as balance ";
+        String qry = "SELECT O.account_id, T.name, A.balance ";
         qry = qry + "FROM Owns O, type T, Account A ";
         qry = qry + "WHERE O.tax_id='" + tax_id + "' AND T.account_id = O.account_id AND A.account_id = O.account_id";
         ResultSet rs = db.requestData(qry);
         ArrayList<String[]> info = new ArrayList<String[]>();
         while(rs.next()){
             String[] row = new String[3];
-            row[0] = rs.getString("number").trim();
-            row[1] = rs.getString("type").trim();
+            row[0] = rs.getString("account_id").trim();
+            row[1] = rs.getString("name").trim();
             row[2] = rs.getString("balance").trim();
             info.add(row);
             
         }
+        rs.close();
         return info;
+    }
+    
+    //--Method----------------------------------------------------------
+    //Get customer info given some tax_id
+    private ArrayList<String> getAccountInfo() throws Exception {
+        String qry = "SELECT A.account_id, A.balance, A.primary_owner, A.bank_branch, A.linked_account, T.name";
+        qry = qry + " FROM Account A, type T";
+        qry = qry + " WHERE A.account_id='" + chosen_account +"' AND T.account_id=A.account_id";
+        ResultSet rs = db.requestData(qry);
+        ArrayList<String> info = new ArrayList<String>();
+        while(rs.next()){
+            info.add(rs.getNString("account_id").trim());
+            info.add(rs.getString("balance").trim());
+            info.add(rs.getString("primary_owner").trim());
+            info.add(rs.getString("bank_branch").trim());
+            info.add(rs.getString("name").trim());
+            try{info.add(rs.getString("linked_account").trim());}catch(Exception e){}
+        }
+        rs.close();
+        return info;
+    }
+    
+    //--Method-----------------------------------------------------------
+    //Get account owners.
+    public String customersFromAccount(String accountId) throws Exception {
+
+        String customers = "";
+        System.out.println("in: accountID= " + accountId);
+        ArrayList<String> idList = new ArrayList<String>();
+        // Getting to and from transactions
+        String qry = "select c.name,c.tax_id from customers c, owns o where c.tax_id=o.tax_id and o.account_id='"
+                + accountId + "'";
+        System.out.println(qry);
+        ResultSet rs = db.requestData(qry);
+        // adding customer data
+        while (rs.next()) {
+            customers = customers + rs.getString("tax_id") + "  " + rs.getString("name") + "\n";
+        }
+        return customers;
+
     }
     
     //--Method----------------------------------------------------------
@@ -184,14 +267,21 @@ public class AtmWindow extends JFrame implements ActionListener {
         );
 
         jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createEtchedBorder(), "Accounts"));
-
+        
+        jComboBox2.setFont(new java.awt.Font("Tahoma", 0, 15));
         jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
         
         //Try to get accounts:
         try{
             accounts = getAccounts();
-        } catch (Exception e) { System.out.println("Couldn't get accounts for customer.");}
-        System.out.print(accounts);
+            String[] account_options = new String[accounts.size()+1];
+            account_options[0] = "---SELECT AN ACCOUNT----";
+            for(int i = 0; i < accounts.size(); i++) {
+                account_options[i+1]=(" -- #: " + accounts.get(i)[0] + " -- type: " + accounts.get(i)[1] + " ----------------- $" + accounts.get(i)[2]);
+            }
+            jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(account_options));
+        } catch (Exception e) { System.out.println("Couldn't get accounts for customer." + e.getMessage());}
+        
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -216,6 +306,7 @@ public class AtmWindow extends JFrame implements ActionListener {
 
         jScrollPane2.setOpaque(false);
 
+        overviewText.setFont(new java.awt.Font("Monospaced", 0, 18));
         overviewText.setColumns(20);
         overviewText.setRows(5);
         jScrollPane2.setViewportView(overviewText);
