@@ -28,6 +28,7 @@ import javax.swing.JTextPane;
 import java.awt.Panel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
+import java.util.*;
 
 public class TellerWindow {
 
@@ -385,7 +386,8 @@ public class TellerWindow {
 	/**
 	 * Create the application.
 	 */
-	public TellerWindow() {
+                
+	public TellerWindow() throws Exception {
 		// Establish data object.
 		db = new Data();
 

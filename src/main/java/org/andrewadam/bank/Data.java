@@ -40,13 +40,22 @@ public class Data {
    
    //--Default Constructor-----
    //Initilizes necessary data.
-    public Data() {
+    public Data() throws Exception{
 
         //Initialize:
         conn = null;
         stmt = null;
         result = null;
         last = "";
+        
+        //STEP 2: Register JDBC driver
+        Class.forName(JDBC_DRIVER);
+
+        //STEP 3: Open a connection
+        //System.out.println("Connecting to a selected database...");
+        conn = DriverManager.getConnection(DB_URL, USERNAME, PASSWORD);
+        //System.out.println("Connected database successfully...");
+        
     }
     
     //--Method-------------------------------------------
@@ -56,13 +65,7 @@ public class Data {
         //Attempt to execute querey:
         try {
             
-            //STEP 2: Register JDBC driver
-            Class.forName(JDBC_DRIVER);
-
-            //STEP 3: Open a connection
-            //System.out.println("Connecting to a selected database...");
-            conn = DriverManager.getConnection(DB_URL, USERNAME, PASSWORD);
-            //System.out.println("Connected database successfully...");
+            
 
             //Make request:
             stmt = conn.createStatement();
