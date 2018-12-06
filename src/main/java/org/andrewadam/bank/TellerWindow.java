@@ -235,7 +235,7 @@ public class TellerWindow {
 						+ rs.getString("type_name").trim() + " " + rs.getString("amount") + "\n";
 		}
 		rs.close();
-		db.closeConn();
+		// db.closeConn();
 		System.out.println(transactions);
 		return transactions;
 
@@ -337,7 +337,8 @@ public class TellerWindow {
 				qry = "delete from owns where account_id='" + rs.getString("account_id") + "'";
 				System.out.println(qry);
 				db.requestData(qry);
-				qry = "update account set linked_account=null where linked_account='" + rs.getString("account_id") + "'";
+				qry = "update account set linked_account=null where linked_account='" + rs.getString("account_id")
+						+ "'";
 				System.out.println(qry);
 				db.requestData(qry);
 				qry = "delete from account where account_id='" + rs.getString("account_id") + "'";
@@ -346,16 +347,16 @@ public class TellerWindow {
 				qry = "select tax_id from customers minus select tax_id from owns";
 				System.out.println(qry);
 				rs2 = db.requestData(qry);
-				while (rs2.next()){
-					qry = "delete from customers where tax_id='"+ rs2.getString("tax_id") + "'";
+				while (rs2.next()) {
+					qry = "delete from customers where tax_id='" + rs2.getString("tax_id") + "'";
 					System.out.println(qry);
 					db.requestData(qry);
 				}
 				rs2.close();
-					
+
 			}
 			rs.close();
-			db.closeConn();
+			// db.closeConn();
 
 		} catch (Exception e1) {
 			System.out.println("delete accounts and customers failed");
@@ -364,29 +365,29 @@ public class TellerWindow {
 	}
 
 	// DELETING transactions
-		public void deleteTransactions() throws Exception {
-			try {
-				String qry = "delete from makes where not id='1'";
-				System.out.println(qry);
-				db.requestData(qry);
-				qry = "delete from has_t_type where not id='1'";
-				System.out.println(qry);
-				db.requestData(qry);
-				qry = "delete from transactions where not id='1'";
-				System.out.println(qry);
-				db.requestData(qry);
-				db.closeConn();
+	public void deleteTransactions() throws Exception {
+		try {
+			String qry = "delete from makes where not id='1'";
+			System.out.println(qry);
+			db.requestData(qry);
+			qry = "delete from has_t_type where not id='1'";
+			System.out.println(qry);
+			db.requestData(qry);
+			qry = "delete from transactions where not id='1'";
+			System.out.println(qry);
+			db.requestData(qry);
+			// db.closeConn();
 
-			} catch (Exception e1) {
-				System.out.println("delete transactions failed");
+		} catch (Exception e1) {
+			System.out.println("delete transactions failed");
 
-			}
 		}
-		
+	}
+
 	/**
 	 * Create the application.
 	 */
-                
+
 	public TellerWindow() throws Exception {
 		// Establish data object.
 		db = new Data();
@@ -483,7 +484,7 @@ public class TellerWindow {
 						} else
 							System.out.println("Account is NOT a checking or savings account");
 
-						db.closeConn();
+						// db.closeConn();
 
 					} catch (Exception e2) {
 						System.out.println("failed to deposit");
@@ -511,7 +512,7 @@ public class TellerWindow {
 							String qry = "update account set status='0' where account_id='"
 									+ TransferIdNumberInput.getText() + "'";
 							db.requestData(qry);
-							db.closeConn();
+							// db.closeConn();
 							System.out.println("Account WILL go negative, and now account "
 									+ TransferIdNumberInput.getText() + " is now closed");
 							return;
@@ -549,7 +550,7 @@ public class TellerWindow {
 								// TODO actually check these as you go
 								System.out.println("Fail: the account wasnt checking/saving, pocket, or linked");
 						}
-						db.closeConn();
+						// db.closeConn();
 
 					} catch (Exception e2) {
 						System.out.println("failed to Top-Up");
@@ -570,7 +571,7 @@ public class TellerWindow {
 							String qry = "update account set status='0' where account_id='"
 									+ AccountIdNumberInput.getText() + "'";
 							db.requestData(qry);
-							db.closeConn();
+							// db.closeConn();
 							System.out.println("Account WILL go negative, and now account "
 									+ AccountIdNumberInput.getText() + " is now closed");
 							return;
@@ -599,7 +600,7 @@ public class TellerWindow {
 							} else
 								System.out.println("Account is NOT a checking or savings account");
 						}
-						db.closeConn();
+						// db.closeConn();
 
 					} catch (Exception e2) {
 						System.out.println("failed to Withdrawal");
@@ -624,7 +625,7 @@ public class TellerWindow {
 								String qry = "update account set status='0' where account_id='"
 										+ AccountIdNumberInput.getText() + "'";
 								db.requestData(qry);
-								db.closeConn();
+								// db.closeConn();
 								System.out.println("Account WILL go negative, and now account "
 										+ AccountIdNumberInput.getText() + " is now closed");
 								return;
@@ -639,7 +640,7 @@ public class TellerWindow {
 							}
 						} else
 							System.out.println("Account id is not a pocket account");
-						db.closeConn();
+						// db.closeConn();
 
 					} catch (Exception e2) {
 						System.out.println("failed to Purchase");
@@ -647,7 +648,7 @@ public class TellerWindow {
 					break;
 				case "Transfer":
 					try {
-						if(Double.parseDouble(AmountInput.getText()) > 2000){
+						if (Double.parseDouble(AmountInput.getText()) > 2000) {
 							System.out.println("Please enter a amount less than 2000");
 							return;
 						}
@@ -687,7 +688,7 @@ public class TellerWindow {
 								System.out.println("NOT owner in both accounts");
 							}
 						}
-						db.closeConn();
+						// db.closeConn();
 
 					} catch (Exception e2) {
 						System.out.println("failed to Transfer");
@@ -712,7 +713,7 @@ public class TellerWindow {
 							String qry = "update account set status='0' where account_id='"
 									+ TransferIdNumberInput.getText() + "'";
 							db.requestData(qry);
-							db.closeConn();
+							// db.closeConn();
 							System.out.println("Account WILL go negative, and now account "
 									+ TransferIdNumberInput.getText() + " is now closed");
 							return;
@@ -749,7 +750,7 @@ public class TellerWindow {
 								// TODO actually check these as you go
 								System.out.println("Fail: the account wasnt checking/saving, pocket, or linked");
 						}
-						db.closeConn();
+						// db.closeConn();
 
 					} catch (Exception e2) {
 						System.out.println("failed to Collect");
@@ -773,7 +774,7 @@ public class TellerWindow {
 							String qry = "update account set status='0' where account_id='"
 									+ TransferIdNumberInput.getText() + "'";
 							db.requestData(qry);
-							db.closeConn();
+							// db.closeConn();
 							System.out.println("Account WILL go negative, and now account "
 									+ TransferIdNumberInput.getText() + " is now closed");
 							return;
@@ -802,7 +803,7 @@ public class TellerWindow {
 								System.out.println("Make sure both accounts are pocket accounts");
 							}
 						}
-						db.closeConn();
+						// db.closeConn();
 
 					} catch (Exception e2) {
 						System.out.println("failed to Pay-Friend");
@@ -827,7 +828,7 @@ public class TellerWindow {
 							String qry = "update account set status='0' where account_id='"
 									+ TransferIdNumberInput.getText() + "'";
 							db.requestData(qry);
-							db.closeConn();
+							// db.closeConn();
 							System.out.println("Account WILL go negative, and now account "
 									+ TransferIdNumberInput.getText() + " is now closed");
 							return;
@@ -860,15 +861,22 @@ public class TellerWindow {
 								System.out.println("make sure both accounts are checking/savings");
 							}
 						}
-						db.closeConn();
+						// db.closeConn();
 
 					} catch (Exception e2) {
 						System.out.println("failed to Wire");
 					}
 					break;
 				case "Write-Check":
-					// TODO check number
+					// TODO there is a 0 appended to generate monthly statement
+					// on write-check transactions.
 					try {
+						String qry = "select max(check_number) from transactions";
+						ResultSet r = db.requestData(qry);
+						r.next();
+						Integer cur_check_number = Integer.valueOf(r.getString(1).trim());
+						cur_check_number++;
+
 						// Check if accounts are closed
 						if (!accountOpen(AccountIdNumberInput.getText())) {
 							System.out.println("Make sure account is open:");
@@ -879,10 +887,10 @@ public class TellerWindow {
 						}
 						// Checks if account will go negative
 						if (accountGoesNegative(AccountIdNumberInput.getText(), AmountInput.getText())) {
-							String qry = "update account set status='0' where account_id='"
-									+ AccountIdNumberInput.getText() + "'";
+							qry = "update account set status='0' where account_id='" + AccountIdNumberInput.getText()
+									+ "'";
 							db.requestData(qry);
-							db.closeConn();
+							// db.closeConn();
 							System.out.println("Account WILL go negative, and now account "
 									+ AccountIdNumberInput.getText() + " is now closed");
 							return;
@@ -891,17 +899,17 @@ public class TellerWindow {
 							Boolean sChecking = isAccountType("student checking", AccountIdNumberInput.getText());
 
 							if (sChecking) {
-								String qry = "update account set balance = balance - " + AmountInput.getText()
+								qry = "update account set balance = balance - " + AmountInput.getText()
 										+ " where account_id = " + AccountIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
 								// Create transaction
-								// TODO get check number
-								createTransaction(AccountIdNumberInput.getText(), "0", AmountInput.getText(), 9,
-										"write-check");
+
+								createTransaction(AccountIdNumberInput.getText(), "0", AmountInput.getText(),
+										cur_check_number, "write-check");
 							}
 						}
-						db.closeConn();
+						// db.closeConn();
 
 					} catch (Exception e2) {
 						System.out.println("failed to Withdrawal");
@@ -909,7 +917,33 @@ public class TellerWindow {
 					break;
 				case "Accrue-Interest":
 					// TODO this one might take a while
-					System.out.println("");
+					try {
+						String qry = "select t.account_id, a.balance, t.name, at.interest from type t, accounttype at, account a where t.name=at.name and a.account_id=t.account_id and t.account_id='"+AccountIdNumberInput.getText()+"'";
+						System.out.println(qry);
+						ResultSet r = db.requestData(qry);
+						double balance = 0.0;
+						double interest = 0.0;
+
+						r.next();
+						balance = Double.parseDouble(r.getString("balance"));
+						interest = Double.parseDouble(r.getString("interest"));
+						interest  = balance * interest;
+						balance = balance + interest;
+						balance = Math.floor(balance * 100) / 100;
+						qry = "update account set balance = " + balance + " where account_id = "
+								+ r.getString("account_id");
+						System.out.println(qry);
+						db.requestData(qry);
+
+						r.close();
+						// db.closeConn();
+						createTransaction(AccountIdNumberInput.getText(), "0", Double.toString(interest), 0,
+								"accrue-interest");
+					} catch (Exception e1) {
+
+						System.out.println("Failed to Accrue-Interest");
+						System.out.println(e1);
+					}
 					break;
 
 				}
@@ -1099,21 +1133,21 @@ public class TellerWindow {
 					ResultSet r = db.requestData(qry);
 					double balance = 0.0;
 					double interest = 0.0;
-					
-					while (r.next()){
+
+					while (r.next()) {
 						balance = Double.parseDouble(r.getString("balance"));
 						interest = Double.parseDouble(r.getString("interest"));
-						balance = balance + balance*interest;
-						balance= Math.floor(balance * 100) / 100;
-						qry = "update account set balance = " + balance
-						+ " where account_id = " + r.getString("account_id");
+						balance = balance + balance * interest;
+						balance = Math.floor(balance * 100) / 100;
+						qry = "update account set balance = " + balance + " where account_id = "
+								+ r.getString("account_id");
 						System.out.println(qry);
 						db.requestData(qry);
 					}
 					r.close();
-					db.closeConn();
+					// db.closeConn();
 				} catch (Exception e1) {
-					
+
 					System.out.println("Failed to add interest");
 					System.out.println(e1);
 				}
@@ -1212,7 +1246,7 @@ public class TellerWindow {
 
 					// Creating customer, and adding
 					else if (createCustomer == true) {
-                                                String digest = Hmac.hash(TaxIdInput.getText(), "1717");
+						String digest = Hmac.hash(TaxIdInput.getText(), "1717");
 						qry = "insert into customers (name,tax_id,address,hash) " + "values('" + NameInput.getText()
 								+ "','" + TaxIdInput.getText() + "','" + AddressInput.getText() + "','" + digest + "')";
 						System.out.println(qry);
@@ -1224,7 +1258,7 @@ public class TellerWindow {
 						tax_id_list.add(TaxIdInput.getText());
 
 					r.close();
-					db.closeConn();
+					//// db.closeConn();
 					System.out.println(tax_id_list);
 				}
 
@@ -1287,7 +1321,7 @@ public class TellerWindow {
 							System.out.println("Linked account " + LinkedAccountInput.getText() + " does not belong to "
 									+ tax_id_list.get(0) + ", and pocket account must be used for a linked account");
 							r.close();
-							db.closeConn();
+							//// db.closeConn();
 							return;
 						}
 						System.out.println(qry);
@@ -1309,15 +1343,14 @@ public class TellerWindow {
 
 						// Creating transaction
 						if (AccountTypeInput.getSelectedItem().toString() == "pocket") {
-							if (LinkedAccountInput.getText().length()==9){
-							createTransaction(cur_account_id.toString(), LinkedAccountInput.getText(),
-									DepositInput.getText(), 0, "top-up");
-							qry = "update account set balance = balance - " + DepositInput.getText()
-									+ " where account_id = " + LinkedAccountInput.getText();
-							System.out.println(qry);
-							db.requestData(qry);
-							}
-							else{
+							if (LinkedAccountInput.getText().length() == 9) {
+								createTransaction(cur_account_id.toString(), LinkedAccountInput.getText(),
+										DepositInput.getText(), 0, "top-up");
+								qry = "update account set balance = balance - " + DepositInput.getText()
+										+ " where account_id = " + LinkedAccountInput.getText();
+								System.out.println(qry);
+								db.requestData(qry);
+							} else {
 								System.out.println("Enter a valid linked Account");
 							}
 
@@ -1326,7 +1359,7 @@ public class TellerWindow {
 									DepositInput.getText(), 0, "deposit");
 
 						r.close();
-						db.closeConn();
+						// db.closeConn();
 
 						tax_id_list.clear();
 					}
