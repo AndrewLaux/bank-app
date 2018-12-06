@@ -1089,6 +1089,34 @@ public class TellerWindow {
 		AddInterest.setLayout(null);
 
 		JButton button_2 = new JButton("Enter");
+		button_2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					String qry = "select t.account_id, a.balance, t.name, at.interest from type t, accounttype at, account a where t.name=at.name and a.account_id=t.account_id";
+					System.out.println(qry);
+					ResultSet r = db.requestData(qry);
+					double balance = 0.0;
+					double interest = 0.0;
+					
+					while (r.next()){
+						balance = Double.parseDouble(r.getString("balance"));
+						interest = Double.parseDouble(r.getString("interest"));
+						balance = balance + balance*interest;
+						balance= Math.floor(balance * 100) / 100;
+						qry = "update account set balance = " + balance
+						+ " where account_id = " + r.getString("account_id");
+						System.out.println(qry);
+						db.requestData(qry);
+					}
+					r.close();
+					db.closeConn();
+				} catch (Exception e1) {
+					
+					System.out.println("Failed to add interest");
+					System.out.println(e1);
+				}
+			}
+		});
 		button_2.setBounds(363, 59, 115, 29);
 		AddInterest.add(button_2);
 
@@ -1279,7 +1307,7 @@ public class TellerWindow {
 
 						// Creating transaction
 						if (AccountTypeInput.getSelectedItem().toString() == "pocket") {
-							if (LinkedAccountInput.getText().length()==10){
+							if (LinkedAccountInput.getText().length()==9){
 							createTransaction(cur_account_id.toString(), LinkedAccountInput.getText(),
 									DepositInput.getText(), 0, "top-up");
 							qry = "update account set balance = balance - " + DepositInput.getText()
