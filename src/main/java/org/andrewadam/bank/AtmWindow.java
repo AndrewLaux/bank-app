@@ -8,6 +8,7 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
+import java.text.*;
 
 //--Class--////////////////////////////////////////////////////////////
 //An interface GUI for customers to look up and make transactions on 
@@ -25,6 +26,7 @@ public class AtmWindow extends JFrame implements ActionListener {
     private String chosen_account;
     private String primary_of_chosen;
     private String chosen_type;
+    private double current_rate;
     
     //GUI elements:
     private javax.swing.JPasswordField jPasswordField1;
@@ -51,6 +53,10 @@ public class AtmWindow extends JFrame implements ActionListener {
     private javax.swing.JPanel transactionsPane;
     private javax.swing.JLabel user_hdr;
     private javax.swing.JButton Refresh;
+    private CardLayout cl;
+    
+    //Formatter
+    NumberFormat formatter = NumberFormat.getCurrencyInstance();
     
     //--Constructor with Args-----------------------------------------
     //Constructs the GUI given a tax_id associated with a customer.
@@ -62,11 +68,18 @@ public class AtmWindow extends JFrame implements ActionListener {
         initComponents();
         setVisible(true);
         
+        cl = (CardLayout) loadedactionsPane.getLayout();
+        cl.show(loadedactionsPane, "card4");
+        
         //Register listeners for GUI elements.
         jComboBox2.addActionListener(this);
         Refresh.addActionListener(this);
         jButton1.addActionListener(this);
         jComboBox3.addActionListener(this);
+        card1_amount.addActionListener(this);
+        card2_amount.addActionListener(this);
+        confirm1.addActionListener(this);
+        confrim2.addActionListener(this);
         
     }
     
@@ -81,6 +94,9 @@ public class AtmWindow extends JFrame implements ActionListener {
         if( source == jComboBox2 && jComboBox2.getSelectedIndex() != 0) {
             chosen_account = accounts.get(jComboBox2.getSelectedIndex() - 1)[0];
             String over_text = "";
+            
+            //Set card to card0:
+            cl.show(loadedactionsPane, "card4");
             
             //Attempt to fill out overview pane:
             try{
@@ -168,8 +184,80 @@ public class AtmWindow extends JFrame implements ActionListener {
 
         }
         
-    //--//Select action to perform on account   
+    //--//Select action to perform on account 
+        if(source == jComboBox3 && jComboBox3.getSelectedIndex() != 0){
+            
+            //Switch to appropriate card:
+            String x = (String) jComboBox3.getSelectedItem();
+            if(x.equals("deposit") || x.equals("withdrawl") ||x.equals("purchase") ||x.equals("collect") ||x.equals("top-up"))
+                cl.show(loadedactionsPane, "card5");
+            else
+                cl.show(loadedactionsPane, "card6");
+            
+            //Set appropriate fees.
+            if(x.equals("wire")){
+                card2_rate.setText("2% Fee:");
+                current_rate = .02;
+                card2_fee.setText("$0.00");      
+            } else if(x.equals("collect")){
+                card1_rate.setText("3% Fee:");
+                current_rate = .03;
+                card1_fee.setText("$0.00"); 
+            } else {
+                current_rate = 0;
+                card2_rate.setText("Free of Charge");
+                card2_fee.setText("");
+                card1_rate.setText("Free of Charge");
+                card1_fee.setText(""); 
+            }
+            
+        }
         
+    //--//Update fee according to amount
+        if(source == card1_amount) {
+            if(current_rate != 0) {
+                try{
+                    double entered = Double.parseDouble(card1_amount.getText());
+                    card1_fee.setText(formatter.format(entered * current_rate));
+                }catch(Exception e){card1_fee.setText("???");}
+            }
+        }
+        
+    //--//Update fee according to amount
+        if(source == card2_amount) {
+            if(current_rate != 0) {
+                try{
+                    double entered = Double.parseDouble(card2_amount.getText());
+                    card2_fee.setText(formatter.format(entered * current_rate));
+                }catch(Exception e){card2_fee.setText("???");}
+            }
+        }
+        
+    //--//Deposit Logic
+        if(source == confirm1 && jComboBox3.getSelectedItem().equals("deposit")){
+            try{ //to make deposit:
+                double deposit = Double.parseDouble(card1_amount.getText());
+                if(deposit < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
+                String qry = "UPDATE Account SET balance=balance+"+String.valueOf(deposit)+" ";
+                qry += "WHERE account_id='"+chosen_account+"'";
+                db.requestData(qry);
+                 System.out.println("Successful deposit");
+                 
+                //Record transaction:
+                Integer next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + App.app_date.getYear() + 1900;
+                qry += "VALUES ("+next+", '"+curDate+"', "+String.valueOf(deposit)+")";
+                db.requestData(qry);
+                
+                //Record makes
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry = "VALUES ('"+chosen_account+"', "+next+", '"+tax_id+"')";
+                db.requestData(qry);
+                
+                
+            }catch(Exception e){ System.out.println(e.getMessage() + "Failed to make deposit or record it.");}
+        }
         
     }
     
@@ -328,6 +416,7 @@ public class AtmWindow extends JFrame implements ActionListener {
     //Contains code for initializing GUI elements. Gets called by constr.
     private void initComponents() {
 
+        jPanel3 = new javax.swing.JPanel();
         jPanel1 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
@@ -338,20 +427,43 @@ public class AtmWindow extends JFrame implements ActionListener {
         jPanel2 = new javax.swing.JPanel();
         jComboBox2 = new javax.swing.JComboBox<>();
         jTabbedPane2 = new javax.swing.JTabbedPane();
+        transactionsPane = new javax.swing.JPanel();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        transactionTable = new javax.swing.JTable();
+        Refresh = new javax.swing.JButton();
         overviewPane = new javax.swing.JPanel();
         jScrollPane2 = new javax.swing.JScrollPane();
         overviewText = new javax.swing.JTextArea();
         actionsPane = new javax.swing.JPanel();
         jComboBox3 = new javax.swing.JComboBox<>();
         loadedactionsPane = new javax.swing.JPanel();
-        transactionsPane = new javax.swing.JPanel();
-        jScrollPane3 = new javax.swing.JScrollPane();
-        transactionTable = new javax.swing.JTable();
-        Refresh = new javax.swing.JButton();
+        card2 = new javax.swing.JPanel();
+        jTextField1 = new javax.swing.JTextField();
+        card2_amount = new javax.swing.JTextField();
+        card2_rate = new javax.swing.JLabel();
+        card2_fee = new javax.swing.JLabel();
+        confrim2 = new javax.swing.JButton();
+        card1 = new javax.swing.JPanel();
+        card1_amount = new javax.swing.JTextField();
+        card1_rate = new javax.swing.JLabel();
+        card1_fee = new javax.swing.JLabel();
+        confirm1 = new javax.swing.JButton();
+        card0 = new javax.swing.JPanel();
         PinPanel = new javax.swing.JPanel();
         jButton1 = new javax.swing.JButton();
         jPasswordField1 = new javax.swing.JPasswordField();
         jPasswordField2 = new javax.swing.JPasswordField();
+
+        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+        jPanel3.setLayout(jPanel3Layout);
+        jPanel3Layout.setHorizontalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 100, Short.MAX_VALUE)
+        );
+        jPanel3Layout.setVerticalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 100, Short.MAX_VALUE)
+        );
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("ATM");
@@ -431,7 +543,7 @@ public class AtmWindow extends JFrame implements ActionListener {
             String[] account_options = new String[accounts.size()+1];
             account_options[0] = "---SELECT AN ACCOUNT----";
             for(int i = 0; i < accounts.size(); i++) {
-                account_options[i+1]=(" -- #: " + accounts.get(i)[0] + " -- type: " + accounts.get(i)[1] + " ----------------- $" + accounts.get(i)[2]);
+                account_options[i+1]=(" -- #: " + accounts.get(i)[0] + " -- type: " + accounts.get(i)[1]);
             }
             jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(account_options));
         } catch (Exception e) { System.out.println("Couldn't get accounts for customer." + e.getMessage());}
@@ -469,16 +581,118 @@ public class AtmWindow extends JFrame implements ActionListener {
 
         jComboBox3.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
 
-        javax.swing.GroupLayout loadedactionsPaneLayout = new javax.swing.GroupLayout(loadedactionsPane);
-        loadedactionsPane.setLayout(loadedactionsPaneLayout);
-        loadedactionsPaneLayout.setHorizontalGroup(
-            loadedactionsPaneLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
+        loadedactionsPane.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        loadedactionsPane.setLayout(new java.awt.CardLayout());
+
+        jTextField1.setText("");
+        jTextField1.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "To", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP));
+        jTextField1.setOpaque(false);
+
+        card2_amount.setText("");
+        card2_amount.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Amount", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP));
+        card2_amount.setOpaque(false);
+
+        card2_rate.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
+        card2_rate.setText("Fee: ");
+
+        card2_fee.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
+        card2_fee.setText("");
+
+        confrim2.setText("Confirm");
+     
+
+        javax.swing.GroupLayout card2Layout = new javax.swing.GroupLayout(card2);
+        card2.setLayout(card2Layout);
+        card2Layout.setHorizontalGroup(
+            card2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(card2Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(card2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(card2Layout.createSequentialGroup()
+                        .addComponent(card2_amount, javax.swing.GroupLayout.PREFERRED_SIZE, 102, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 102, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(confrim2))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(card2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(card2Layout.createSequentialGroup()
+                        .addComponent(card2_fee, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 60, Short.MAX_VALUE))
+                    .addComponent(card2_rate, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
         );
-        loadedactionsPaneLayout.setVerticalGroup(
-            loadedactionsPaneLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
+        card2Layout.setVerticalGroup(
+            card2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(card2Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(card2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(card2_amount, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(card2_rate))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(card2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(confrim2)
+                    .addComponent(card2_fee))
+                .addContainerGap(264, Short.MAX_VALUE))
         );
+
+        loadedactionsPane.add(card2, "card6");
+
+        card1_amount.setText("");
+        card1_amount.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Amount", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP));
+        card1_amount.setOpaque(false);
+
+        card1_rate.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
+        card1_rate.setText("Free of Charge");
+
+        card1_fee.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
+        card1_fee.setText("");
+
+        confirm1.setText("Confirm");
+   
+        javax.swing.GroupLayout card1Layout = new javax.swing.GroupLayout(card1);
+        card1.setLayout(card1Layout);
+        card1Layout.setHorizontalGroup(
+            card1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(card1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(card1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(card1_amount, javax.swing.GroupLayout.PREFERRED_SIZE, 102, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(confirm1))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(card1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(card1_rate, javax.swing.GroupLayout.PREFERRED_SIZE, 106, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(card1_fee, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(152, Short.MAX_VALUE))
+        );
+        card1Layout.setVerticalGroup(
+            card1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(card1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(card1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(card1_amount, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(card1_rate))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(card1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addComponent(confirm1)
+                    .addComponent(card1_fee))
+                .addContainerGap(259, Short.MAX_VALUE))
+        );
+
+        loadedactionsPane.add(card1, "card5");
+
+        javax.swing.GroupLayout card0Layout = new javax.swing.GroupLayout(card0);
+        card0.setLayout(card0Layout);
+        card0Layout.setHorizontalGroup(
+            card0Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 380, Short.MAX_VALUE)
+        );
+        card0Layout.setVerticalGroup(
+            card0Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 343, Short.MAX_VALUE)
+        );
+
+        loadedactionsPane.add(card0, "card4");
 
         javax.swing.GroupLayout actionsPaneLayout = new javax.swing.GroupLayout(actionsPane);
         actionsPane.setLayout(actionsPaneLayout);
@@ -528,13 +742,13 @@ public class AtmWindow extends JFrame implements ActionListener {
 
         transactionTable.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null, null},
-                {null, null, new String("HI"), null, null, null},
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null}
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
             },
             new String [] {
-                "Transaction #", "Date", "Customer", "Type", "Amount", "Check #"
+                "Title 1", "Title 2", "Title 3", "Title 4"
             }
         ));
         jScrollPane3.setViewportView(transactionTable);
@@ -561,7 +775,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 .addContainerGap()
                 .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 396, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
-                .addComponent(Refresh, javax.swing.GroupLayout.DEFAULT_SIZE, 23, Short.MAX_VALUE)
+                .addComponent(Refresh, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
@@ -668,5 +882,38 @@ public class AtmWindow extends JFrame implements ActionListener {
 
     }
     
+    //--Method--------------------------------------------------------------------
+    //Gets next available transaction id.
+    public Integer nextTransactionId() throws Exception {
+        // Getting next transaction ID to use
+        String qry = "select max(id) from transactions";
+        ResultSet rs = db.requestData(qry);
+        rs.next();
+        Integer transactionId = Integer.valueOf(rs.getString(1).trim());
+        transactionId++;
+        rs.close();
+        return transactionId;
+
+    }
     
+    // Variables declaration - do not modify                     
+
+    private javax.swing.JPanel card0;
+    private javax.swing.JPanel card1;
+    private javax.swing.JLabel card1_fee;
+    private javax.swing.JPanel card2;
+    private javax.swing.JLabel card2_fee;
+    private javax.swing.JButton confirm1;
+    private javax.swing.JButton confrim2;
+
+    private javax.swing.JLabel card2_rate;
+    private javax.swing.JLabel card1_rate;
+
+    private javax.swing.JPanel jPanel3;
+
+    private javax.swing.JTextField jTextField1;
+    private javax.swing.JTextField card2_amount;
+    private javax.swing.JTextField card1_amount;
+
+    // End of variables declaration                   
 }

@@ -14,6 +14,9 @@ import java.util.*;
 //----------------------------------------------------------
 public class App extends JFrame implements ActionListener {
     
+    //public date object:
+    public static java.util.Date app_date= new java.util.Date();
+    
     //Database object:
     private Data db;
      
