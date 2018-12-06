@@ -32,7 +32,7 @@ public class App extends JFrame implements ActionListener {
     
     //--Default Constructor -------------------------------------
     //Checks connection and performs tasks necessary for the GUI.
-    public App() {
+    public App() throws Exception {
         
         //Establish data object.
         db = new Data();
@@ -61,7 +61,7 @@ public class App extends JFrame implements ActionListener {
             //Open teller window if password is valid
             if( tellerPw.equals("123") ){
             	System.out.println("valid");
-            	new TellerWindow().main(null);
+            	try{new TellerWindow().main(null);}catch(Exception e){System.out.println("Failed to launch teller window.");}
             }
             else{
             	System.out.println("not valid");
@@ -86,7 +86,7 @@ public class App extends JFrame implements ActionListener {
                 
                 //Launch atmwindow
                 //String[] arg = {String.valueOf(id)};
-                AtmWindow atm = new AtmWindow(String.valueOf(id));
+               try{ AtmWindow atm = new AtmWindow(String.valueOf(id));}catch(Exception e){}
 
             }
             
@@ -107,11 +107,8 @@ public class App extends JFrame implements ActionListener {
         try {
             
             //Create window:
-            java.awt.EventQueue.invokeLater(new Runnable() {
-                public void run() {
-                    new App().setVisible(true);
-                }
-            });
+            App myapp = new App();
+            myapp.setVisible(true);
         } 
         
         //Catch problems generating GUI:
@@ -129,15 +126,13 @@ public class App extends JFrame implements ActionListener {
             
             //Get PIN/Id hash from db. Remove whitespace from result:
             String qry = "SELECT hash FROM customers WHERE tax_id=" + String.valueOf(id);
-            System.out.print(qry);
             ResultSet r = db.requestData(qry);
             r.next();
             String found = r.getString("hash").replaceAll(" ","");
-            db.closeConn();
+
 
             //TODO: compute expected hash.
             String expected = Hmac.hash(String.valueOf(id), String.valueOf(pin));
-            System.out.println(expected);
             
             //Compare
             return (found.equals(expected));
@@ -146,7 +141,7 @@ public class App extends JFrame implements ActionListener {
         }//Could not make query to server.
         catch (Exception e) {
             
-            System.out.println(e.getMessage() + "\nFailed to verify PIN");
+            System.out.println(e.getMessage() + "\nWasn't able to check PIN");
             return false;
         }
 
