@@ -16,7 +16,6 @@ public class App extends JFrame implements ActionListener {
     
     //public date object:
     public static java.util.Date app_date= new java.util.Date();
-    
     //Database object:
     private Data db;
      
@@ -36,7 +35,6 @@ public class App extends JFrame implements ActionListener {
     //--Default Constructor -------------------------------------
     //Checks connection and performs tasks necessary for the GUI.
     public App() throws Exception {
-        
         //Establish data object.
         db = new Data();
         

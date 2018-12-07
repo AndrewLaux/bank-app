@@ -29,6 +29,7 @@ import java.awt.Panel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import java.util.*;
+import javax.swing.ScrollPaneConstants;
 
 public class TellerWindow {
 
@@ -49,6 +50,10 @@ public class TellerWindow {
 	private JTextField LinkedAccountInput;
 	private ArrayList<String> tax_id_list = new ArrayList<String>();
 	private JTextField BankBranchInput;
+	private JTextField month;
+	private JTextField day;
+	private JTextField year;
+	private JTextField customAccountNumberInput;
 
 	/**
 	 * Launch the application.
@@ -74,6 +79,15 @@ public class TellerWindow {
 		Boolean result = rs.next();
 		rs.close();
 		return result;
+	}
+
+	public double computeFee(double amount, double fee) {
+
+		return Math.floor(amount + amount * fee * 100) / 100;
+	}
+
+	public double returnFee(double amount, double fee) {
+		return Math.floor(amount * fee * 100) / 100;
 	}
 
 	// Checks if the given tax id own the given account id
@@ -145,7 +159,7 @@ public class TellerWindow {
 		// id, transaction_date, check_number, amount
 		// "insert into transactions values(1,'"+curDate+"',1,1.11)"
 		java.util.Date date = new java.util.Date();
-		String curDate = date.getMonth() + 1 + "/" + date.getDate() + "/" + (date.getYear() + 1900);
+		String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + (App.app_date.getYear() + 1900);
 		String qry = "";
 		Integer transId = nextTransactionId();
 
@@ -213,11 +227,14 @@ public class TellerWindow {
 		System.out.println(qry);
 		ResultSet rs = db.requestData(qry);
 		while (rs.next()) {
-			idList.add(rs.getString("id"));
-			transactions = transactions + rs.getString("id") + " " + rs.getString("transaction_date") + " "
-					+ rs.getString("account_id") + " " + rs.getString("name").trim() + " "
-					+ rs.getString("type_name").trim() + " " + rs.getString("amount") + " "
-					+ rs.getString("account_id_2") + "\n";
+			if (!rs.getString("account_id_2").trim().equals("0")){
+				System.out.println(rs.getString("account_id_2"));
+				idList.add(rs.getString("id"));
+				transactions = transactions + rs.getString("id") + " " + rs.getString("transaction_date") + " From "
+						+ rs.getString("account_id") + " " + rs.getString("name").trim() + " "
+						+ rs.getString("type_name").trim() + " $" + rs.getString("amount") + " To "
+						+ rs.getString("account_id_2") + "\n";
+			}
 		}
 
 		// Getting single account transactions
@@ -232,7 +249,7 @@ public class TellerWindow {
 			if (!idList.contains(rs.getString("id")))
 				transactions = transactions + rs.getString("id") + " " + rs.getString("transaction_date") + " "
 						+ rs.getString("account_id") + " " + rs.getString("name").trim() + " "
-						+ rs.getString("type_name").trim() + " " + rs.getString("amount") + "\n";
+						+ rs.getString("type_name").trim() + " $" + rs.getString("amount") + "\n";
 		}
 		rs.close();
 		// db.closeConn();
@@ -547,7 +564,6 @@ public class TellerWindow {
 								createTransaction(AccountIdNumberInput.getText(), TransferIdNumberInput.getText(),
 										AmountInput.getText(), 0, "top-up");
 							} else
-								// TODO actually check these as you go
 								System.out.println("Fail: the account wasnt checking/saving, pocket, or linked");
 						}
 						// db.closeConn();
@@ -695,7 +711,6 @@ public class TellerWindow {
 					}
 					break;
 				case "Collect":
-					// TODO 3%fee
 					try {
 						// Check if accounts are closed
 						if (!(accountOpen(TransferIdNumberInput.getText())
@@ -708,8 +723,9 @@ public class TellerWindow {
 									AccountIdNumberInput.getText() + "=" + accountOpen(AccountIdNumberInput.getText()));
 							return;
 						}
+						Double amountWithFee = computeFee(Double.parseDouble(AmountInput.getText()), .03);
 						// Checks if account will go negative
-						if (accountGoesNegative(TransferIdNumberInput.getText(), AmountInput.getText())) {
+						if (accountGoesNegative(TransferIdNumberInput.getText(), amountWithFee.toString())) {
 							String qry = "update account set status='0' where account_id='"
 									+ TransferIdNumberInput.getText() + "'";
 							db.requestData(qry);
@@ -739,15 +755,19 @@ public class TellerWindow {
 										+ " where account_id = " + AccountIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
-								qry = "update account set balance = balance - " + AmountInput.getText()
+								qry = "update account set balance = balance - " + amountWithFee.toString()
 										+ " where account_id = " + TransferIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
 								// Create transaction
 								createTransaction(AccountIdNumberInput.getText(), TransferIdNumberInput.getText(),
 										AmountInput.getText(), 0, "collect");
+
+								// Create transaction fee
+								Double fee = returnFee(Double.parseDouble(AmountInput.getText()), .03);
+								createTransaction(TransferIdNumberInput.getText(), "0", fee.toString(), 0, "collect");
+
 							} else
-								// TODO actually check these as you go
 								System.out.println("Fail: the account wasnt checking/saving, pocket, or linked");
 						}
 						// db.closeConn();
@@ -823,8 +843,9 @@ public class TellerWindow {
 									AccountIdNumberInput.getText() + "=" + accountOpen(AccountIdNumberInput.getText()));
 							return;
 						}
+						Double amountWithFee = computeFee(Double.parseDouble(AmountInput.getText()), .02);
 						// Checks if account will go negative
-						if (accountGoesNegative(TransferIdNumberInput.getText(), AmountInput.getText())) {
+						if (accountGoesNegative(TransferIdNumberInput.getText(), amountWithFee.toString())) {
 							String qry = "update account set status='0' where account_id='"
 									+ TransferIdNumberInput.getText() + "'";
 							db.requestData(qry);
@@ -850,13 +871,17 @@ public class TellerWindow {
 										+ " where account_id = " + AccountIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
-								qry = "update account set balance = balance - " + AmountInput.getText()
+								qry = "update account set balance = balance - " + amountWithFee.toString()
 										+ " where account_id = " + TransferIdNumberInput.getText();
 								System.out.println(qry);
 								db.requestData(qry);
 								// Create transaction
 								createTransaction(AccountIdNumberInput.getText(), TransferIdNumberInput.getText(),
 										AmountInput.getText(), 0, "wire");
+
+								// Create transaction fee
+								Double fee = returnFee(Double.parseDouble(AmountInput.getText()), .02);
+								createTransaction(TransferIdNumberInput.getText(), "0", fee.toString(), 0, "wire");
 							} else {
 								System.out.println("make sure both accounts are checking/savings");
 							}
@@ -916,9 +941,9 @@ public class TellerWindow {
 					}
 					break;
 				case "Accrue-Interest":
-					// TODO this one might take a while
 					try {
-						String qry = "select t.account_id, a.balance, t.name, at.interest from type t, accounttype at, account a where t.name=at.name and a.account_id=t.account_id and t.account_id='"+AccountIdNumberInput.getText()+"'";
+						String qry = "select t.account_id, a.balance, t.name, at.interest from type t, accounttype at, account a where t.name=at.name and a.account_id=t.account_id and t.account_id='"
+								+ AccountIdNumberInput.getText() + "'";
 						System.out.println(qry);
 						ResultSet r = db.requestData(qry);
 						double balance = 0.0;
@@ -927,7 +952,7 @@ public class TellerWindow {
 						r.next();
 						balance = Double.parseDouble(r.getString("balance"));
 						interest = Double.parseDouble(r.getString("interest"));
-						interest  = balance * interest;
+						interest = balance * interest;
 						balance = balance + interest;
 						balance = Math.floor(balance * 100) / 100;
 						qry = "update account set balance = " + balance + " where account_id = "
@@ -965,7 +990,7 @@ public class TellerWindow {
 		GenerateMonthlyStatement.setLayout(null);
 
 		JTextArea monthlyStatement = new JTextArea();
-		monthlyStatement.setBounds(15, 90, 823, 296);
+		monthlyStatement.setBounds(15, 90, 823, 290);
 		GenerateMonthlyStatement.add(monthlyStatement);
 
 		JLabel TaxIDNumber = new JLabel("Tax ID Number");
@@ -980,9 +1005,6 @@ public class TellerWindow {
 		JButton btnEnter_1 = new JButton("Enter");
 		btnEnter_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				// TODO add scroll to text field
-				// TODO needs account initial and final balances
-				// TODO warn if accounts are over $100,000
 				try {
 					ArrayList<String> accountList = new ArrayList<String>();
 					String qry = "select account_id from owns where tax_id='" + taxIdNumberInput.getText() + "'";
@@ -1001,10 +1023,19 @@ public class TellerWindow {
 					}
 					statement = statement + "\nTransactions\n____________\n";
 					for (String acnt : accountList) {
-						// ID #
+
+						// Get balance
+						qry = "select balance from account where account_id='" + acnt + "'";
+						r = db.requestData(qry);
+						r.next();
+
+						// ID # : balance
 						// transactions...
 						// ...
-						statement = statement + "ID " + acnt + "\n";
+						statement = statement + "ID " + acnt + "     Balance: $" + r.getString("balance") + "\n";
+						if (Double.parseDouble(r.getString("balance")) > 100000)
+							statement = statement
+									+ "the limit of the insurance has been reached since your account is over $100000\n";
 						transactions = accountTransactionsFor(acnt);
 						statement = statement + transactions + "\n";
 					}
@@ -1018,6 +1049,10 @@ public class TellerWindow {
 		});
 		btnEnter_1.setBounds(373, 31, 115, 29);
 		GenerateMonthlyStatement.add(btnEnter_1);
+
+		JScrollPane scrollPane = new JScrollPane(monthlyStatement);
+		scrollPane.setBounds(15, 90, 823, 290);
+		GenerateMonthlyStatement.add(scrollPane);
 
 		JPanel ListClosedAccounts = new JPanel();
 		tabbedPane.addTab("List Closed Accounts", null, ListClosedAccounts, null);
@@ -1056,12 +1091,16 @@ public class TellerWindow {
 		btnEnter_2.setBounds(373, 31, 115, 29);
 		ListClosedAccounts.add(btnEnter_2);
 
+		JScrollPane scrollPane_1 = new JScrollPane(closedAccountTextField);
+		scrollPane_1.setBounds(15, 90, 823, 290);
+		ListClosedAccounts.add(scrollPane_1);
+
 		JPanel DTER = new JPanel();
 		tabbedPane.addTab("DTER", null, DTER, null);
 		DTER.setLayout(null);
 
 		JTextArea dterTextFieldOutput = new JTextArea();
-		dterTextFieldOutput.setBounds(15, 90, 823, 296);
+		dterTextFieldOutput.setBounds(15, 90, 823, 260);
 		DTER.add(dterTextFieldOutput);
 
 		JButton button = new JButton("Enter");
@@ -1070,7 +1109,6 @@ public class TellerWindow {
 				try {
 					String dterReport = DTER();
 					dterTextFieldOutput.setText(dterReport);
-
 				} catch (Exception e1) {
 					e1.printStackTrace();
 				}
@@ -1080,12 +1118,16 @@ public class TellerWindow {
 		button.setBounds(373, 31, 115, 29);
 		DTER.add(button);
 
+		JScrollPane scrollPane_2 = new JScrollPane(dterTextFieldOutput);
+		scrollPane_2.setBounds(15, 90, 823, 260);
+		DTER.add(scrollPane_2);
+
 		JPanel CustomerReport = new JPanel();
 		tabbedPane.addTab("Customer Report", null, CustomerReport, null);
 		CustomerReport.setLayout(null);
 
 		JTextArea customerReportTextField = new JTextArea();
-		customerReportTextField.setBounds(15, 90, 823, 296);
+		customerReportTextField.setBounds(15, 90, 823, 259);
 		CustomerReport.add(customerReportTextField);
 
 		JLabel lblTaxIdNumber = new JLabel("Tax Id Number");
@@ -1119,6 +1161,10 @@ public class TellerWindow {
 		});
 		button_1.setBounds(373, 31, 115, 29);
 		CustomerReport.add(button_1);
+
+		JScrollPane scrollPane_3 = new JScrollPane(customerReportTextField);
+		scrollPane_3.setBounds(15, 90, 823, 259);
+		CustomerReport.add(scrollPane_3);
 
 		JPanel AddInterest = new JPanel();
 		tabbedPane.addTab("Add Interest", null, AddInterest, null);
@@ -1224,7 +1270,7 @@ public class TellerWindow {
 						}
 						// Tax id is valid, and user has entered a name and
 						// address
-						else if (TaxIdInput.getText().length() == 10 && !"".equals(NameInput.getText())
+						else if (TaxIdInput.getText().length() == 9 && !"".equals(NameInput.getText())
 								&& !"".equals(AddressInput.getText())) {
 							// System.out.println("Create new customers, and add
 							// to this current account");
@@ -1288,10 +1334,15 @@ public class TellerWindow {
 		btnCreateAccount.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				java.util.Date date = new java.util.Date();
-				String curDate = date.getMonth() + 1 + "/" + date.getDate() + "/" + date.getYear() + 1900;
+				// String curDate = date.getMonth() + 1 + "/" + date.getDate() +
+				// "/" + date.getYear() + 1900;
 				try {
 					// if we have values to add to account, the amount to
 					// deposit is atleast 0.1 and there is a bank branch
+
+	
+
+					
 					if (tax_id_list.size() != 0 && Double.parseDouble(DepositInput.getText()) >= 0.1
 							&& BankBranchInput.getText() != "") {
 						// Getting the lowest account ID, and subtracting it for
@@ -1301,10 +1352,13 @@ public class TellerWindow {
 						r.next();
 						Integer cur_account_id = Integer.valueOf(r.getString(1).trim());
 						cur_account_id--;
+						if(customAccountNumberInput.getText().length() !=0)
+							cur_account_id=Integer.parseInt(customAccountNumberInput.getText());
+
 
 						// Checks that the linked account matches with the owner
 						// and that pocket account is selected
-						if (LinkedAccountInput.getText().length() == 9
+						if (LinkedAccountInput.getText().length() == 5
 								&& doesTaxidOwnAccount(tax_id_list.get(0), LinkedAccountInput.getText())
 								&& AccountTypeInput.getSelectedItem().toString() == "pocket") {
 							qry = "insert into account(account_id,balance,primary_owner,bank_branch,status,linked_account) "
@@ -1343,7 +1397,7 @@ public class TellerWindow {
 
 						// Creating transaction
 						if (AccountTypeInput.getSelectedItem().toString() == "pocket") {
-							if (LinkedAccountInput.getText().length() == 9) {
+							if (LinkedAccountInput.getText().length() == 5) {
 								createTransaction(cur_account_id.toString(), LinkedAccountInput.getText(),
 										DepositInput.getText(), 0, "top-up");
 								qry = "update account set balance = balance - " + DepositInput.getText()
@@ -1399,6 +1453,15 @@ public class TellerWindow {
 		JLabel lblBankBranch = new JLabel("Bank Branch");
 		lblBankBranch.setBounds(15, 36, 91, 20);
 		CreateAccount.add(lblBankBranch);
+		
+		customAccountNumberInput = new JTextField();
+		customAccountNumberInput.setBounds(692, 250, 146, 26);
+		CreateAccount.add(customAccountNumberInput);
+		customAccountNumberInput.setColumns(10);
+		
+		JLabel lblCustomAccountNumber = new JLabel("Custom Account Number");
+		lblCustomAccountNumber.setBounds(479, 253, 202, 20);
+		CreateAccount.add(lblCustomAccountNumber);
 
 		JPanel DeleteClosedAccountsandCustomers = new JPanel();
 		tabbedPane.addTab("Delete Closed Accounts and Customers", null, DeleteClosedAccountsandCustomers, null);
@@ -1410,7 +1473,7 @@ public class TellerWindow {
 				try {
 					deleteClosedAccounts();
 				} catch (Exception e1) {
-					// TODO Auto-generated catch block
+					System.out.println("failed to delete closed accounts");
 					e1.printStackTrace();
 				}
 			}
@@ -1434,5 +1497,42 @@ public class TellerWindow {
 		});
 		btnEnter_4.setBounds(356, 43, 115, 29);
 		DeleteTransactions.add(btnEnter_4);
+		
+		JPanel Date = new JPanel();
+		tabbedPane.addTab("Date", null, Date, null);
+		
+		JLabel lblMonth = new JLabel("month");
+		Date.add(lblMonth);
+		
+		month = new JTextField();
+		Date.add(month);
+		month.setColumns(10);
+		
+		JLabel lblDay = new JLabel("day");
+		Date.add(lblDay);
+		
+		day = new JTextField();
+		Date.add(day);
+		day.setColumns(10);
+		
+		JLabel lblYearDigits = new JLabel("year (4 digits)");
+		Date.add(lblYearDigits);
+		
+		year = new JTextField();
+		Date.add(year);
+		year.setColumns(10);
+		
+		JButton Change = new JButton("Change");
+		Change.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				App.app_date.setDate(Integer.parseInt(day.getText()));
+				Integer curMonth = Integer.parseInt(month.getText()) - 1;
+				App.app_date.setMonth(curMonth);
+				Integer curYear = Integer.parseInt(year.getText()) - 1900;
+				App.app_date.setYear(curYear);
+				System.out.println(App.app_date);
+			}
+		});
+		Date.add(Change);
 	}
 }
