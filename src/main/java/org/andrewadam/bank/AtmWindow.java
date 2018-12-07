@@ -247,9 +247,12 @@ public class AtmWindow extends JFrame implements ActionListener {
             try{
                 double withdrawl = Double.parseDouble(card1_amount.getText());
                 if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
-                if(withdrawl >= Double.parseDouble(overview.get(1))) throw new IllegalArgumentException("Exceeds withdrawl limit.");
-                boolean mark_for_closure = false;
-                if(withdrawl == Double.parseDouble(overview.get(1)) -0.01) mark_for_closure = true;
+                if(withdrawl >= Double.parseDouble(overview.get(1))-0.01){
+                    String qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                    throw new IllegalArgumentException("Exceeded withdrawal limit. Closing account.");
+                }
                 
                 //Make transaction:
                 String qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
@@ -277,12 +280,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 System.out.println(qry);
                 db.requestData(qry);
                 
-                //posible closure:
-                if(mark_for_closure) {
-                    qry = "UPDATE Account SET status=0 ";
-                    qry += "WHERE account_id='" + chosen_account + "'";
-                    db.requestData(qry);
-                }
+               
                 
                 //Todo update account and overview:
                 updateChosen();
@@ -297,9 +295,12 @@ public class AtmWindow extends JFrame implements ActionListener {
             try{
                 double withdrawl = Double.parseDouble(card1_amount.getText());
                 if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
-                if(withdrawl >= Double.parseDouble(overview.get(1))) throw new IllegalArgumentException("Exceeds withdrawl limit.");
-                boolean mark_for_closure = false;
-                if(withdrawl == Double.parseDouble(overview.get(1)) -0.01) mark_for_closure = true;
+                if(withdrawl >= Double.parseDouble(overview.get(1))-0.01){
+                    String qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                    throw new IllegalArgumentException("Exceeded withdrawal limit. Closing account.");
+                }
                 Integer this_check = getCheckNum();
                 
                 //make transaction:
@@ -329,12 +330,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 db.requestData(qry);
                 
                 
-                //possible closure of account flag:
-                if(mark_for_closure) {
-                    qry = "UPDATE Account SET status=0 ";
-                    qry += "WHERE account_id='" + chosen_account + "'";
-                    db.requestData(qry);
-                }
+                
                 
                 card1_amount.setText("");
                 
@@ -351,10 +347,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 double withdrawl = Double.parseDouble(card2_amount.getText());
                 if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
                 if(withdrawl > 2000) throw new IllegalArgumentException("Must not exceed $2000.00.");
-                if(withdrawl > Double.parseDouble(overview.get(1))-0.01) throw new IllegalArgumentException("Exceeds withdrawl limit.");
-                boolean mark_for_closure = false;
-                if(withdrawl == Double.parseDouble(overview.get(1)) -0.01) mark_for_closure = true;
-                 
+                      
                 
                 //Deposit conditions
                 double deposit = withdrawl;
@@ -362,6 +355,13 @@ public class AtmWindow extends JFrame implements ActionListener {
                 ArrayList<String> xferables = getTransferable();
                 if(!xferables.contains(target_accnt)) throw new IllegalArgumentException("Bat target account.");
                 if(isClosed(target_accnt)) throw new IllegalArgumentException("Target account is closed.");
+                
+                if(withdrawl >= Double.parseDouble(overview.get(1))-0.01){
+                    String qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                    throw new IllegalArgumentException("Exceeded withdrawal limit. Closing account.");
+                }
                 
                 //Make both transactions
                 String qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
@@ -410,12 +410,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 System.out.println(qry);
                 db.requestData(qry);
                 
-                //possible closure of account flag:
-                if(mark_for_closure) {
-                    qry = "UPDATE Account SET status=0 ";
-                    qry += "WHERE account_id='" + chosen_account + "'";
-                    db.requestData(qry);
-                }
+                
                 
                 
                 card2_amount.setText("");
@@ -435,9 +430,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 double deposit = withdrawl;
                 withdrawl = withdrawl*1.02;
                 if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
-                if(withdrawl > Double.parseDouble(overview.get(1))-0.01) throw new IllegalArgumentException("Exceeds withdrawl limit.");
-                boolean mark_for_closure = false;
-                if(withdrawl == Double.parseDouble(overview.get(1)) -0.01) mark_for_closure = true;
+             
                  
                 
                 //Deposit conditions
@@ -445,6 +438,13 @@ public class AtmWindow extends JFrame implements ActionListener {
                 ArrayList<String> xferables = getWireable();
                 if(!xferables.contains(target_accnt)) throw new IllegalArgumentException("Bat target account.");
                 if(isClosed(target_accnt)) throw new IllegalArgumentException("Target account is closed.");
+                
+                if(withdrawl >= Double.parseDouble(overview.get(1))-0.01){
+                    String qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                    throw new IllegalArgumentException("Exceeded withdrawal limit. Closing account.");
+                }
                 
                 //Make both transactions
                 String qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
@@ -492,14 +492,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 qry += "VALUES ("+next+", 'transfer')";
                 System.out.println(qry);
                 db.requestData(qry);
-                
-                //possible closure of account flag:
-                if(mark_for_closure) {
-                    qry = "UPDATE Account SET status=0 ";
-                    qry += "WHERE account_id='" + chosen_account + "'";
-                    db.requestData(qry);
-                }
-                
+             
                 
                 card2_amount.setText("");
                 
@@ -515,9 +508,12 @@ public class AtmWindow extends JFrame implements ActionListener {
                 //Withdrawl preconditions:
                 double withdrawl = Double.parseDouble(card1_amount.getText());
                 if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
-                if(withdrawl > Double.parseDouble(overview.get(1))-0.01) throw new IllegalArgumentException("Exceeds withdrawl limit.");
-                boolean mark_for_closure = false;
-                if(withdrawl == Double.parseDouble(overview.get(1)) -0.01) mark_for_closure = true;
+                if(withdrawl >= Double.parseDouble(overview.get(1))-0.01){
+                    String qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                    throw new IllegalArgumentException("Exceeded withdrawal limit. Closing account.");
+                }
                 
                 //Make transaction:
                 String qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
@@ -545,12 +541,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 System.out.println(qry);
                 db.requestData(qry);
                 
-                //posible closure:
-                if(mark_for_closure) {
-                    qry = "UPDATE Account SET status=0 ";
-                    qry += "WHERE account_id='" + chosen_account + "'";
-                    db.requestData(qry);
-                }
+              
                 
                 
                 card1_amount.setText("");
@@ -568,9 +559,6 @@ public class AtmWindow extends JFrame implements ActionListener {
                 Double withdrawl = Double.parseDouble(card2_amount.getText());
                 double deposit = withdrawl;
                 if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
-                if(withdrawl > Double.parseDouble(overview.get(1))-0.01) throw new IllegalArgumentException("Exceeds withdrawl limit.");
-                boolean mark_for_closure = false;
-                if(withdrawl == Double.parseDouble(overview.get(1)) -0.01) mark_for_closure = true;
                  
                 
                 //Deposit conditions
@@ -578,6 +566,13 @@ public class AtmWindow extends JFrame implements ActionListener {
                 ArrayList<String> xferables = getPayable();
                 if(!xferables.contains(target_accnt)) throw new IllegalArgumentException("Bat target account.");
                 if(isClosed(target_accnt)) throw new IllegalArgumentException("Target account is closed.");
+                
+                if(withdrawl >= Double.parseDouble(overview.get(1))-0.01){
+                    String qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                    throw new IllegalArgumentException("Exceeded withdrawal limit. Closing account.");
+                }
                 
                 //Make both transactions
                 String qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
@@ -626,12 +621,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 System.out.println(qry);
                 db.requestData(qry);
                 
-                //possible closure of account flag:
-                if(mark_for_closure) {
-                    qry = "UPDATE Account SET status=0 ";
-                    qry += "WHERE account_id='" + chosen_account + "'";
-                    db.requestData(qry);
-                }
+               
                 
                 
                 card2_amount.setText("");
@@ -644,9 +634,206 @@ public class AtmWindow extends JFrame implements ActionListener {
             }catch(Exception e) { System.out.println(e.getMessage() + "Pay-friend failed."); }
         }
         
+    //--//Collect Logic
+    if(source == confirm1 && jComboBox3.getSelectedItem().equals("collect")) {
+        try{ //Try to collect from pocket account.
+            
+            //withdrawing conditions
+                Double withdrawl = Double.parseDouble(card1_amount.getText());
+                double deposit = withdrawl;
+                withdrawl = withdrawl*1.03;
+                if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
+                 
+                
+                //Deposit conditions
+                String target_accnt = overview.get(5);
+                if(!isAvailable(target_accnt)) throw new IllegalArgumentException("Bad target account.");
+                if(isClosed(target_accnt)) throw new IllegalArgumentException("Target account is closed.");
+                
+                if(withdrawl >= Double.parseDouble(overview.get(1))-0.01){
+                    String qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                    throw new IllegalArgumentException("Exceeded withdrawal limit. Closing account.");
+                }
+                
+                //Make both transactions
+                String qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
+                qry += "WHERE account_id='"+chosen_account+"'";
+                db.requestData(qry);
+                System.out.println("Successful withdrawl");
+                
+                qry = "UPDATE Account SET balance=balance+"+df.format(deposit)+" ";
+                qry += "WHERE account_id='"+target_accnt+"'";
+                db.requestData(qry);
+                System.out.println("Successful deposit");
+                
+                //Make transaction records for widrawal
+                Integer next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + (App.app_date.getYear() + 1900);
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(withdrawl*-1)+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Make makes and has type;
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+chosen_account+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'collect')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                
+                //Make record for depos.
+                next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(deposit)+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Insert into makes and has type:
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+target_accnt+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'collect')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+
+                
+                
+                card1_amount.setText("");
+                
+                //update chosen:
+                updateChosen();
+            
+            
+            
+            } catch (Exception e) { System.out.println(e.getMessage() + "collect failed.");}
+        }
+    
+    //--// Top-off logic
+        if(source == confirm1 && jComboBox3.getSelectedItem().equals("top-up")){
+            try{ //Try to top off
+                
+                //Deposit conditions:
+                double deposit = Double.parseDouble(card1_amount.getText());
+                if(deposit < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
+                
+                //Withdrawl conditions:
+                double withdrawl = deposit;
+                String target_accnt = overview.get(5);
+                withdrawl += topFee();
+                ArrayList<String> linked_overview = new ArrayList<String>();
+                linked_overview = getLinkedInfo();
+                if(!tax_id.equals(linked_overview.get(2))) throw new IllegalArgumentException("Not the primary owner of linked account.");
+                
+                if(withdrawl >= Double.parseDouble(linked_overview.get(1))-0.01){
+                    String qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + target_accnt + "'";
+                    db.requestData(qry);
+                    throw new IllegalArgumentException("Exceeded withdrawal limit. Closing account.");
+                }
+                
+                //Make both transactions
+                String qry = "UPDATE Account SET balance=balance+"+df.format(deposit)+" ";
+                qry += "WHERE account_id='"+chosen_account+"'";
+                db.requestData(qry);
+                System.out.println("Successful withdrawl");
+                
+                qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
+                qry += "WHERE account_id='"+target_accnt+"'";
+                db.requestData(qry);
+                System.out.println("Successful deposit");
+                
+                //Make transaction records for widrawal
+                Integer next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + (App.app_date.getYear() + 1900);
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(withdrawl*-1)+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Make makes and has type;
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+target_accnt+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'top-up')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                
+                //Make record for depos.
+                next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(deposit)+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Insert into makes and has type:
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+chosen_account+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'top-up')";
+                System.out.println(qry);
+                db.requestData(qry);
+
+                
+                
+                card1_amount.setText("");
+                
+                //update chosen:
+                updateChosen();
+                
+                
+                
+            }catch(Exception e) {e.printStackTrace();}
+        }
     }
     
-    //TODO: METHOD to check if top-off is first of the month
+    //--Method--------------------------------------------------
+    //METHOD to check if top-off is first of the month
+    private double topFee() throws Exception {
+        double fee;
+        String qry = "SELECT T.transaction_date ";
+        qry += "FROM transactions T, makes M, has_t_type H ";
+        qry += "WHERE M.ID=T.Id AND T.ID=H.ID AND H.type_name='top-up' AND M.account_id='"+chosen_account+"'";
+        ArrayList<String> dates = new ArrayList<String>();
+        ResultSet rs = db.requestData(qry);
+        while(rs.next()){
+            String t_date = rs.getString("transaction_date").trim();
+            dates.add(t_date.substring(0, t_date.indexOf("/")));
+        }
+        for(String adate :dates) System.out.println(adate);
+        if(dates.contains(String.valueOf(App.app_date.getMonth()+1))) return 0.00;
+        
+        else {
+            System.out.println("Applyng 5 dollar fee.");
+            return 5.00;
+        }
+    }
+    
+    
+    //--Method---------------------------------------------------------
+    //Check if given account is closed or not.
+    private boolean isAvailable(String acnt) throws Exception {
+        boolean found = false;
+        String qry = "SELECT account_id ";
+        qry += "FROM Account ";
+        qry += "WHERE account_id='"+acnt+"'";
+        ResultSet re = db.requestData(qry);  
+        return re.next();
+    }
+    
     
     //--Method---------------------------------------------------------
     //Check if given account is closed or not.
@@ -743,6 +930,28 @@ public class AtmWindow extends JFrame implements ActionListener {
         String qry = "SELECT A.account_id, A.balance, A.primary_owner, A.bank_branch, A.linked_account, T.name, A.status";
         qry = qry + " FROM Account A, type T";
         qry = qry + " WHERE A.account_id='" + chosen_account +"' AND T.account_id=A.account_id";
+        ResultSet rs = db.requestData(qry);
+        ArrayList<String> info = new ArrayList<String>();
+        while(rs.next()){
+            info.add(rs.getString("account_id").trim());
+            info.add(rs.getString("balance").trim());
+            info.add(rs.getString("primary_owner").trim());
+            info.add(rs.getString("bank_branch").trim());
+            info.add(rs.getString("name").trim());
+            try{info.add(rs.getString("linked_account").trim());}catch(Throwable t){info.add("n/a");}
+            info.add(rs.getString("status").trim());
+         
+        }
+        rs.close();
+        return info;
+    }
+    
+    //--Method----------------------------------------------------------
+    //Get customer info given some tax_id
+    private ArrayList<String> getLinkedInfo() throws Exception {
+        String qry = "SELECT A.account_id, A.balance, A.primary_owner, A.bank_branch, A.linked_account, T.name, A.status";
+        qry = qry + " FROM Account A, type T";
+        qry = qry + " WHERE A.account_id='" + overview.get(5) +"' AND T.account_id=A.account_id";
         ResultSet rs = db.requestData(qry);
         ArrayList<String> info = new ArrayList<String>();
         while(rs.next()){
