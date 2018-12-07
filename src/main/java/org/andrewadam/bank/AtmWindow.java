@@ -717,7 +717,7 @@ public class AtmWindow extends JFrame implements ActionListener {
             } catch (Exception e) { System.out.println(e.getMessage() + "collect failed.");}
         }
     
-    //--// Top-off logic
+    //--// Top-up logic
         if(source == confirm1 && jComboBox3.getSelectedItem().equals("top-up")){
             try{ //Try to top off
                 
@@ -731,7 +731,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 withdrawl += topFee();
                 ArrayList<String> linked_overview = new ArrayList<String>();
                 linked_overview = getLinkedInfo();
-                if(!tax_id.equals(linked_overview.get(2))) throw new IllegalArgumentException("Not the primary owner of linked account.");
+                
                 
                 if(withdrawl >= Double.parseDouble(linked_overview.get(1))-0.01){
                     String qry = "UPDATE Account SET status=0 ";
