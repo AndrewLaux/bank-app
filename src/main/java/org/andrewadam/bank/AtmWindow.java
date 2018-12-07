@@ -58,6 +58,8 @@ public class AtmWindow extends JFrame implements ActionListener {
     
     //Formatter
     NumberFormat formatter = NumberFormat.getCurrencyInstance();
+    DecimalFormat df = new DecimalFormat("#.##");
+    
     
     //--Constructor with Args-----------------------------------------
     //Constructs the GUI given a tax_id associated with a customer.
@@ -82,11 +84,14 @@ public class AtmWindow extends JFrame implements ActionListener {
         confirm1.addActionListener(this);
         confrim2.addActionListener(this);
         
+        
     }
     
     //--Method---------------------------------------------------------
     //Contains code for responding to GUI actions.
     public void actionPerformed(ActionEvent obj) {
+        
+        
         
         //Capture source:
         Object source = obj.getSource();
@@ -152,7 +157,7 @@ public class AtmWindow extends JFrame implements ActionListener {
             
             //Switch to appropriate card:
             String x = (String) jComboBox3.getSelectedItem();
-            if(x.equals("deposit") || x.equals("withdrawl") ||x.equals("purchase") ||x.equals("collect") ||x.equals("top-up"))
+            if(x.equals("deposit") || x.equals("withdrawl") ||x.equals("purchase") ||x.equals("collect") ||x.equals("top-up") ||x.equals("write check"))
                 cl.show(loadedactionsPane, "card5");
             else
                 cl.show(loadedactionsPane, "card6");
@@ -174,11 +179,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 card1_fee.setText(""); 
             }
             
-            //Modify for write check
-            if(x.equals("write check")){
-                jTextField1.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Check #", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP));
-            }
-            else jTextField1.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "To", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP));
+            
             
         }
         
@@ -207,7 +208,7 @@ public class AtmWindow extends JFrame implements ActionListener {
             try{ //to make deposit:
                 double deposit = Double.parseDouble(card1_amount.getText());
                 if(deposit < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
-                String qry = "UPDATE Account SET balance=balance+"+String.valueOf(deposit)+" ";
+                String qry = "UPDATE Account SET balance=balance+"+df.format(deposit)+" ";
                 qry += "WHERE account_id='"+chosen_account+"'";
                 db.requestData(qry);
                 System.out.println("Successful deposit");
@@ -216,7 +217,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 Integer next = nextTransactionId();
                 qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
                 String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + (App.app_date.getYear() + 1900);
-                qry += "VALUES ("+next+", '"+curDate+"', "+String.valueOf(deposit)+")";
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(deposit)+")";
                 System.out.println(qry);
                 db.requestData(qry);
                 
@@ -248,10 +249,10 @@ public class AtmWindow extends JFrame implements ActionListener {
                 if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
                 if(withdrawl >= Double.parseDouble(overview.get(1))) throw new IllegalArgumentException("Exceeds withdrawl limit.");
                 boolean mark_for_closure = false;
-                if(withdrawl == Double.parseDouble(overview.get(1)) -1) mark_for_closure = true;
+                if(withdrawl == Double.parseDouble(overview.get(1)) -0.01) mark_for_closure = true;
                 
                 //Make transaction:
-                String qry = "UPDATE Account SET balance=balance-"+String.valueOf(withdrawl)+" ";
+                String qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
                 qry += "WHERE account_id='"+chosen_account+"'";
                 db.requestData(qry);
                 System.out.println("Successful withdrawl");
@@ -260,7 +261,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 Integer next = nextTransactionId();
                 qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
                 String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + (App.app_date.getYear() + 1900);
-                qry += "VALUES ("+next+", '"+curDate+"', "+String.valueOf(withdrawl)+")";
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(withdrawl)+")";
                 System.out.println(qry);
                 db.requestData(qry);
                 
@@ -286,8 +287,420 @@ public class AtmWindow extends JFrame implements ActionListener {
                 //Todo update account and overview:
                 updateChosen();
                 
+                card1_amount.setText("");
+                
             }catch(Exception e){ System.out.println(e.getMessage() + "Failed to make withdrawl");}
         }
+        
+    //--//Write Check logic
+        if(source == confirm1 && jComboBox3.getSelectedItem().equals("write check")){
+            try{
+                double withdrawl = Double.parseDouble(card1_amount.getText());
+                if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
+                if(withdrawl >= Double.parseDouble(overview.get(1))) throw new IllegalArgumentException("Exceeds withdrawl limit.");
+                boolean mark_for_closure = false;
+                if(withdrawl == Double.parseDouble(overview.get(1)) -0.01) mark_for_closure = true;
+                Integer this_check = getCheckNum();
+                
+                //make transaction:
+                String qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
+                qry += "WHERE account_id='"+chosen_account+"'";
+                db.requestData(qry);
+                System.out.println("write check");
+                
+                //record transaction:
+                Integer next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount, check_number) ";
+                String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + (App.app_date.getYear() + 1900);
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(withdrawl)+", "+this_check+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //record who made transaction:
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+chosen_account+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //record type:
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'write-check')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                
+                //possible closure of account flag:
+                if(mark_for_closure) {
+                    qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                }
+                
+                card1_amount.setText("");
+                
+                //Todo update account and overview:
+                updateChosen();
+                
+            }catch(Exception e){System.out.println(e.getMessage() + "Failed to write check");}
+        }
+        
+    //--//Transfer Logic
+        if(source == confrim2 && jComboBox3.getSelectedItem().equals("transfer")) {
+            try {
+                //withdrawing conditions
+                double withdrawl = Double.parseDouble(card2_amount.getText());
+                if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
+                if(withdrawl > 2000) throw new IllegalArgumentException("Must not exceed $2000.00.");
+                if(withdrawl > Double.parseDouble(overview.get(1))-0.01) throw new IllegalArgumentException("Exceeds withdrawl limit.");
+                boolean mark_for_closure = false;
+                if(withdrawl == Double.parseDouble(overview.get(1)) -0.01) mark_for_closure = true;
+                 
+                
+                //Deposit conditions
+                double deposit = withdrawl;
+                String target_accnt = jTextField1.getText();
+                ArrayList<String> xferables = getTransferable();
+                if(!xferables.contains(target_accnt)) throw new IllegalArgumentException("Bat target account.");
+                if(isClosed(target_accnt)) throw new IllegalArgumentException("Target account is closed.");
+                
+                //Make both transactions
+                String qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
+                qry += "WHERE account_id='"+chosen_account+"'";
+                db.requestData(qry);
+                System.out.println("Successful withdrawl");
+                
+                qry = "UPDATE Account SET balance=balance+"+df.format(deposit)+" ";
+                qry += "WHERE account_id='"+target_accnt+"'";
+                db.requestData(qry);
+                System.out.println("Successful deposit");
+                
+                //Make transaction records for widrawal
+                Integer next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + (App.app_date.getYear() + 1900);
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(withdrawl*-1)+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Make makes and has type;
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+chosen_account+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'transfer')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                
+                //Make record for depos.
+                next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(deposit)+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Insert into makes and has type:
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+target_accnt+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'transfer')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //possible closure of account flag:
+                if(mark_for_closure) {
+                    qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                }
+                
+                
+                card2_amount.setText("");
+                
+                //update chosen:
+                updateChosen();
+                
+            }catch(Exception e) {System.out.println(e.getMessage() + "Transfer failed"); }
+        
+        }
+        
+    //--//Wire Logic
+        if(source == confrim2 && jComboBox3.getSelectedItem().equals("wire")) {
+            try{//Try to wire money:
+                //withdrawing conditions
+                Double withdrawl = Double.parseDouble(card2_amount.getText());
+                double deposit = withdrawl;
+                withdrawl = withdrawl*1.02;
+                if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
+                if(withdrawl > Double.parseDouble(overview.get(1))-0.01) throw new IllegalArgumentException("Exceeds withdrawl limit.");
+                boolean mark_for_closure = false;
+                if(withdrawl == Double.parseDouble(overview.get(1)) -0.01) mark_for_closure = true;
+                 
+                
+                //Deposit conditions
+                String target_accnt = jTextField1.getText();
+                ArrayList<String> xferables = getWireable();
+                if(!xferables.contains(target_accnt)) throw new IllegalArgumentException("Bat target account.");
+                if(isClosed(target_accnt)) throw new IllegalArgumentException("Target account is closed.");
+                
+                //Make both transactions
+                String qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
+                qry += "WHERE account_id='"+chosen_account+"'";
+                db.requestData(qry);
+                System.out.println("Successful withdrawl");
+                
+                qry = "UPDATE Account SET balance=balance+"+df.format(deposit)+" ";
+                qry += "WHERE account_id='"+target_accnt+"'";
+                db.requestData(qry);
+                System.out.println("Successful deposit");
+                
+                //Make transaction records for widrawal
+                Integer next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + (App.app_date.getYear() + 1900);
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(withdrawl*-1)+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Make makes and has type;
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+chosen_account+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'transfer')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                
+                //Make record for depos.
+                next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(deposit)+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Insert into makes and has type:
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+target_accnt+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'transfer')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //possible closure of account flag:
+                if(mark_for_closure) {
+                    qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                }
+                
+                
+                card2_amount.setText("");
+                
+                //update chosen:
+                updateChosen();
+            }catch(Exception e){System.out.println(e.getMessage() + "Wire failed.");}
+        }
+        
+    //--//Purchase Logic
+        if(source == confirm1 && jComboBox3.getSelectedItem().equals("purchase")){
+            try{ //Try to perform purchase:
+                
+                //Withdrawl preconditions:
+                double withdrawl = Double.parseDouble(card1_amount.getText());
+                if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
+                if(withdrawl > Double.parseDouble(overview.get(1))-0.01) throw new IllegalArgumentException("Exceeds withdrawl limit.");
+                boolean mark_for_closure = false;
+                if(withdrawl == Double.parseDouble(overview.get(1)) -0.01) mark_for_closure = true;
+                
+                //Make transaction:
+                String qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
+                qry += "WHERE account_id='"+chosen_account+"'";
+                db.requestData(qry);
+                System.out.println("Successful purchase");
+                
+                //Record transaction:
+                Integer next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + (App.app_date.getYear() + 1900);
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(withdrawl)+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Insert into makes table:
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+chosen_account+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Record type:
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'purchase')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //posible closure:
+                if(mark_for_closure) {
+                    qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                }
+                
+                
+                card1_amount.setText("");
+                
+                //update chosen:
+                updateChosen();
+            }catch(Exception e){System.out.println(e.getMessage() + "Purchase failed"); }
+        }
+        
+    //--//Pay Friend logic
+        if(source == confrim2 && jComboBox3.getSelectedItem().equals("pay-friend")) {
+            try {
+                
+                //withdrawing conditions
+                Double withdrawl = Double.parseDouble(card2_amount.getText());
+                double deposit = withdrawl;
+                if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
+                if(withdrawl > Double.parseDouble(overview.get(1))-0.01) throw new IllegalArgumentException("Exceeds withdrawl limit.");
+                boolean mark_for_closure = false;
+                if(withdrawl == Double.parseDouble(overview.get(1)) -0.01) mark_for_closure = true;
+                 
+                
+                //Deposit conditions
+                String target_accnt = jTextField1.getText();
+                ArrayList<String> xferables = getPayable();
+                if(!xferables.contains(target_accnt)) throw new IllegalArgumentException("Bat target account.");
+                if(isClosed(target_accnt)) throw new IllegalArgumentException("Target account is closed.");
+                
+                //Make both transactions
+                String qry = "UPDATE Account SET balance=balance-"+df.format(withdrawl)+" ";
+                qry += "WHERE account_id='"+chosen_account+"'";
+                db.requestData(qry);
+                System.out.println("Successful pay");
+                
+                qry = "UPDATE Account SET balance=balance+"+df.format(deposit)+" ";
+                qry += "WHERE account_id='"+target_accnt+"'";
+                db.requestData(qry);
+                System.out.println("Successful payment");
+                
+                //Make transaction records for widrawal
+                Integer next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + (App.app_date.getYear() + 1900);
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(withdrawl*-1)+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Make makes and has type;
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+chosen_account+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'pay-friend')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                
+                //Make record for depos.
+                next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                qry += "VALUES ("+next+", '"+curDate+"', "+df.format(deposit)+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Insert into makes and has type:
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+target_accnt+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'transfer')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //possible closure of account flag:
+                if(mark_for_closure) {
+                    qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                }
+                
+                
+                card2_amount.setText("");
+                
+                //update chosen:
+                updateChosen();
+                
+                
+                
+            }catch(Exception e) { System.out.println(e.getMessage() + "Pay-friend failed."); }
+        }
+        
+    }
+    
+    //TODO: METHOD to check if top-off is first of the month
+    
+    //--Method---------------------------------------------------------
+    //Check if given account is closed or not.
+    private boolean isClosed(String acnt) throws Exception {
+        boolean clsd = false;
+        String qry = "SELECT account_id ";
+        qry += "FROM Account ";
+        qry += "WHERE account_id='"+acnt+"' AND status=0";
+        ResultSet re = db.requestData(qry);
+        
+        return re.next();
+    }
+    
+    //--Method----------------------------------------------------------
+    //Get transferable accounts.
+    private ArrayList<String> getTransferable() throws Exception{
+        String qry = "SELECT A.account_id ";
+        qry += "FROM Account A, type T, owns O ";
+        qry += "WHERE A.account_id=T.account_id AND T.name<>'pocket' AND A.account_id<>'" + chosen_account+"' ";
+        qry += "AND O.account_id=T.account_id AND O.tax_id='"+tax_id+"'";
+        ResultSet rs = db.requestData(qry);
+        ArrayList<String> xferables = new ArrayList<String>();
+        while(rs.next()){
+            xferables.add(rs.getString("account_id"));
+        }
+        return xferables;
+    }
+    
+    //--Method----------------------------------------------------------
+    //Get transferable accounts.
+    private ArrayList<String> getWireable() throws Exception{
+        String qry = "SELECT A.account_id ";
+        qry += "FROM Account A, type T ";
+        qry += "WHERE A.account_id=T.account_id AND T.name<>'pocket' AND A.account_id<>'" + chosen_account+"'";
+        ResultSet rs = db.requestData(qry);
+        ArrayList<String> xferables = new ArrayList<String>();
+        while(rs.next()){
+            xferables.add(rs.getString("account_id"));
+        }
+        return xferables;
+    }
+    
+    //--Method----------------------------------------------------------
+    //Get transferable accounts.
+    private ArrayList<String> getPayable() throws Exception{
+        String qry = "SELECT A.account_id ";
+        qry += "FROM Account A, type T ";
+        qry += "WHERE A.account_id=T.account_id AND T.name='pocket' AND A.account_id<>'" + chosen_account+"'";
+        ResultSet rs = db.requestData(qry);
+        ArrayList<String> xferables = new ArrayList<String>();
+        while(rs.next()){
+            xferables.add(rs.getString("account_id"));
+        }
+        return xferables;
     }
     
     //--Method----------------------------------------------------------
@@ -421,19 +834,16 @@ public class AtmWindow extends JFrame implements ActionListener {
         if(chosen_type.equals("student checking") || chosen_type.equals("interest checking") ||chosen_type.equals("savings")) {
             options.add("deposit");
             options.add("withdrawl");
-            if(accounts.size()>1)options.add("transfer");
+            if(getTransferable().size()>0)options.add("transfer");
             options.add("wire");   
         }
         else if(chosen_type.equals("pocket")) {
             options.add("purchase");
             options.add("pay-friend");
             boolean owner_of_linked = false;
-            for(String[] owns: accounts) if(overview.get(5).equals(owns[0])){
-                options.add("collect");
-                if(tax_id.equals(primaryFromAccount(overview.get(5)))){
-                    options.add("top-up");
-                }
-            }
+            for(String[] owns: accounts) if(overview.get(5).equals(owns[0])) owner_of_linked = true; 
+            if(owner_of_linked) options.add("collect");
+            if(tax_id.equals(primaryFromAccount(overview.get(5))))options.add("top-up");
         }
         if(chosen_type.equals("student checking") || chosen_type.equals("interest checking")){
             options.add("write check");
@@ -448,6 +858,16 @@ public class AtmWindow extends JFrame implements ActionListener {
            return;
        }
         jComboBox3.setModel(new javax.swing.DefaultComboBoxModel<>(options_list));
+    }
+    
+    //--Method-----------------------------------
+    //Get next available check
+    private Integer getCheckNum() throws Exception {
+        String qry = "SELECT NVL(MAX(check_number), 0) AS \"max\"";
+        qry += "FROM transactions";
+        ResultSet rs = db.requestData(qry);
+        rs.next();
+        return rs.getInt("max") + 1;    
     }
     
     //--Method----------------------------------------------------------
@@ -890,6 +1310,8 @@ public class AtmWindow extends JFrame implements ActionListener {
 
         pack();
     }
+    
+    
     
     //--Method------------------------------------
     //This method updates overview for selected account.
