@@ -197,7 +197,7 @@ public class TellerWindow {
 		System.out.println(qry);
 		db.requestData(qry);
 
-		if (accountId2.length() > 0) {
+		if (accountId2.length() > 2) {
 			System.out.println("accountID2= " + accountId2 + "=");
 			// 9999999999 is teller tax_id
 			qry = "insert into makes (account_id,id,tax_id) values('" + accountId2 + "'," + transId + ",'" + temp_tax_id
