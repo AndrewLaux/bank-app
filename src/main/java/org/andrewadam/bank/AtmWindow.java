@@ -1052,7 +1052,7 @@ public class AtmWindow extends JFrame implements ActionListener {
             boolean owner_of_linked = false;
             for(String[] owns: accounts) if(overview.get(5).equals(owns[0])) owner_of_linked = true; 
             if(owner_of_linked) options.add("collect");
-            if(tax_id.equals(primaryFromAccount(overview.get(5))))options.add("top-up");
+            if(owner_of_linked) options.add("top-up");
         }
         if(chosen_type.equals("student checking") || chosen_type.equals("interest checking")){
             options.add("write check");
