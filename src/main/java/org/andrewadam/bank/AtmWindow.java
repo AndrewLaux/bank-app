@@ -917,7 +917,11 @@ public class AtmWindow extends JFrame implements ActionListener {
                 over_text +=       ("\n\n");
                 primary_of_chosen = overview.get(2);
                 chosen_type = overview.get(4);
-                if(overview.get(6).equals("0")) chosen_closed = true;
+                if(overview.get(6).equals("0")){
+                    chosen_closed = true;
+                    over_text += ("**********************CLOSED");
+                    over_text += ("\n\n");
+                }
                 else chosen_closed = false;
                 updateActionOptions();
                 
@@ -931,8 +935,7 @@ public class AtmWindow extends JFrame implements ActionListener {
                 over_text += customersFromAccount(chosen_account);
             }catch (Exception e) {System.out.println("Failed to get owners. \n"+ e.getMessage());}
             
-            over_text += ("**********************CLOSED");
-            over_text += ("\n\n");
+            
             //Post text to text area:
             overviewText.setText(over_text);
     }
