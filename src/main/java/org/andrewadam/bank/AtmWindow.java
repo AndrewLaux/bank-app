@@ -27,6 +27,7 @@ public class AtmWindow extends JFrame implements ActionListener {
     private String primary_of_chosen;
     private String chosen_type;
     private double current_rate;
+    private boolean chosen_closed;
     
     //GUI elements:
     private javax.swing.JPasswordField jPasswordField1;
@@ -92,51 +93,13 @@ public class AtmWindow extends JFrame implements ActionListener {
         
     //--//Account Selector Combo box:
         if( source == jComboBox2 && jComboBox2.getSelectedIndex() != 0) {
-            chosen_account = accounts.get(jComboBox2.getSelectedIndex() - 1)[0];
-            String over_text = "";
+            updateChosen();
             
-            //Set card to card0:
-            cl.show(loadedactionsPane, "card4");
-            
-            //Attempt to fill out overview pane:
-            try{
-                overview = getAccountInfo();
-                over_text += ("Balance: $" + overview.get(1));
-                over_text +=       ("\n\n");
-                over_text +=       ("Account id#:  " + overview.get(0));
-                over_text +=       ("\n");
-                over_text +=       ("Owner ssn#:   " + overview.get(2));
-                over_text +=       ("\n");
-                over_text +=       ("Branch:       " + overview.get(3));
-                over_text +=       ("\n\n");
-                over_text +=       ("Type: " + overview.get(4));
-                over_text +=       ("\n\n");
-                over_text +=       ("Linked: " + overview.get(5));
-                over_text +=       ("\n\n");
-                primary_of_chosen = overview.get(2);
-                chosen_type = overview.get(4);
-                updateActionOptions();
-                
-                
-            }catch (Exception e) {System.out.println("Failed to get overview. \n"+ e.getMessage());}
-            
-            //Attempt to fill out owners:
-            try {
-                over_text += "Owners \n";
-                over_text += "---------\n";
-                over_text += customersFromAccount(chosen_account);
-            }catch (Exception e) {System.out.println("Failed to get owners. \n"+ e.getMessage());}
-            
-            //Post text to text area:
-            overviewText.setText(over_text);
-            
-            //TODO: Update actions:
         }
         
     //--//Transaction tab clicked
         if(source == Refresh && !chosen_account.isEmpty()){
-            try{ updateTransactions(); }catch(Exception e){
-            }
+            try{ updateTransactions(); }catch(Exception e){System.out.println(e.getMessage());}
         }
         
     //--//Update pin button pushed
@@ -211,6 +174,12 @@ public class AtmWindow extends JFrame implements ActionListener {
                 card1_fee.setText(""); 
             }
             
+            //Modify for write check
+            if(x.equals("write check")){
+                jTextField1.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Check #", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP));
+            }
+            else jTextField1.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "To", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP));
+            
         }
         
     //--//Update fee according to amount
@@ -241,24 +210,84 @@ public class AtmWindow extends JFrame implements ActionListener {
                 String qry = "UPDATE Account SET balance=balance+"+String.valueOf(deposit)+" ";
                 qry += "WHERE account_id='"+chosen_account+"'";
                 db.requestData(qry);
-                 System.out.println("Successful deposit");
+                System.out.println("Successful deposit");
                  
                 //Record transaction:
                 Integer next = nextTransactionId();
                 qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
-                String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + App.app_date.getYear() + 1900;
+                String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + (App.app_date.getYear() + 1900);
                 qry += "VALUES ("+next+", '"+curDate+"', "+String.valueOf(deposit)+")";
+                System.out.println(qry);
                 db.requestData(qry);
                 
                 //Record makes
                 qry = "INSERT INTO makes (account_id, ID, tax_id) ";
-                qry = "VALUES ('"+chosen_account+"', "+next+", '"+tax_id+"')";
+                qry += "VALUES ('"+chosen_account+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
                 db.requestData(qry);
                 
+                //Record has type;
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'deposit')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                card1_amount.setText("");
+                
+                //Todo update account and overview:
+                updateChosen();
+           
                 
             }catch(Exception e){ System.out.println(e.getMessage() + "Failed to make deposit or record it.");}
         }
         
+    //--//Withdrawl logic
+        if(source == confirm1 && jComboBox3.getSelectedItem().equals("withdrawl")){
+            try{
+                double withdrawl = Double.parseDouble(card1_amount.getText());
+                if(withdrawl < 0.01) throw new IllegalArgumentException("Must be a positive amount.");
+                if(withdrawl >= Double.parseDouble(overview.get(1))) throw new IllegalArgumentException("Exceeds withdrawl limit.");
+                boolean mark_for_closure = false;
+                if(withdrawl == Double.parseDouble(overview.get(1)) -1) mark_for_closure = true;
+                
+                //Make transaction:
+                String qry = "UPDATE Account SET balance=balance-"+String.valueOf(withdrawl)+" ";
+                qry += "WHERE account_id='"+chosen_account+"'";
+                db.requestData(qry);
+                System.out.println("Successful withdrawl");
+
+                //Record transaction:
+                Integer next = nextTransactionId();
+                qry = "INSERT INTO transactions (ID, transaction_date, amount) ";
+                String curDate = App.app_date.getMonth() + 1 + "/" + App.app_date.getDate() + "/" + (App.app_date.getYear() + 1900);
+                qry += "VALUES ("+next+", '"+curDate+"', "+String.valueOf(withdrawl)+")";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Make makes record:
+                qry = "INSERT INTO makes (account_id, ID, tax_id) ";
+                qry += "VALUES ('"+chosen_account+"', "+next+", '"+tax_id+"')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //Record type:
+                qry = "INSERT INTO has_t_type (ID, type_name) ";
+                qry += "VALUES ("+next+", 'withdrawal')";
+                System.out.println(qry);
+                db.requestData(qry);
+                
+                //posible closure:
+                if(mark_for_closure) {
+                    qry = "UPDATE Account SET status=0 ";
+                    qry += "WHERE account_id='" + chosen_account + "'";
+                    db.requestData(qry);
+                }
+                
+                //Todo update account and overview:
+                updateChosen();
+                
+            }catch(Exception e){ System.out.println(e.getMessage() + "Failed to make withdrawl");}
+        }
     }
     
     //--Method----------------------------------------------------------
@@ -298,7 +327,7 @@ public class AtmWindow extends JFrame implements ActionListener {
     //--Method----------------------------------------------------------
     //Get customer info given some tax_id
     private ArrayList<String> getAccountInfo() throws Exception {
-        String qry = "SELECT A.account_id, A.balance, A.primary_owner, A.bank_branch, A.linked_account, T.name";
+        String qry = "SELECT A.account_id, A.balance, A.primary_owner, A.bank_branch, A.linked_account, T.name, A.status";
         qry = qry + " FROM Account A, type T";
         qry = qry + " WHERE A.account_id='" + chosen_account +"' AND T.account_id=A.account_id";
         ResultSet rs = db.requestData(qry);
@@ -310,6 +339,7 @@ public class AtmWindow extends JFrame implements ActionListener {
             info.add(rs.getString("bank_branch").trim());
             info.add(rs.getString("name").trim());
             try{info.add(rs.getString("linked_account").trim());}catch(Throwable t){info.add("n/a");}
+            info.add(rs.getString("status").trim());
          
         }
         rs.close();
@@ -405,10 +435,18 @@ public class AtmWindow extends JFrame implements ActionListener {
                 }
             }
         }
+        if(chosen_type.equals("student checking") || chosen_type.equals("interest checking")){
+            options.add("write check");
+        }
         String[] options_list = new String[options.size()];
         for (int i = 0; i < options.size(); i++) {
             options_list[i] = options.get(i);
         }
+       String[] closed_list = new String[]{"CLOSED ACCOUNT"};
+       if(chosen_closed){
+           jComboBox3.setModel(new javax.swing.DefaultComboBoxModel<>(closed_list));
+           return;
+       }
         jComboBox3.setModel(new javax.swing.DefaultComboBoxModel<>(options_list));
     }
     
@@ -851,6 +889,55 @@ public class AtmWindow extends JFrame implements ActionListener {
         jTabbedPane2.getAccessibleContext().setAccessibleName("");
 
         pack();
+    }
+    
+    //--Method------------------------------------
+    //This method updates overview for selected account.
+    private void updateChosen() {
+        chosen_account = accounts.get(jComboBox2.getSelectedIndex() - 1)[0];
+            String over_text = "";
+            
+            //Set card to card0:
+            cl.show(loadedactionsPane, "card4");
+            
+            //Attempt to fill out overview pane:
+            try{
+                overview = getAccountInfo();
+                over_text += ("Balance: $" + overview.get(1));
+                over_text +=       ("\n\n");
+                over_text +=       ("Account id#:  " + overview.get(0));
+                over_text +=       ("\n");
+                over_text +=       ("Owner ssn#:   " + overview.get(2));
+                over_text +=       ("\n");
+                over_text +=       ("Branch:       " + overview.get(3));
+                over_text +=       ("\n\n");
+                over_text +=       ("Type: " + overview.get(4));
+                over_text +=       ("\n\n");
+                over_text +=       ("Linked: " + overview.get(5));
+                over_text +=       ("\n\n");
+                primary_of_chosen = overview.get(2);
+                chosen_type = overview.get(4);
+                if(overview.get(6).equals("0")){
+                    chosen_closed = true;
+                    over_text += ("**********************CLOSED");
+                    over_text += ("\n\n");
+                }
+                else chosen_closed = false;
+                updateActionOptions();
+                
+                
+            }catch (Exception e) {System.out.println("Failed to get overview. \n"+ e.getMessage());}
+            
+            //Attempt to fill out owners:
+            try {
+                over_text += "Owners \n";
+                over_text += "---------\n";
+                over_text += customersFromAccount(chosen_account);
+            }catch (Exception e) {System.out.println("Failed to get owners. \n"+ e.getMessage());}
+            
+            
+            //Post text to text area:
+            overviewText.setText(over_text);
     }
     
     //--Method-----------------------------
